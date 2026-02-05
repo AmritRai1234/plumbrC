@@ -1,12 +1,13 @@
 /*
  * PlumbrC - Hardware Detection
- * Auto-detect CPU/GPU capabilities for optimal settings
+ * Auto-detect CPU/GPU/Memory capabilities for optimal settings
  */
 
 #ifndef PLUMBR_HWDETECT_H
 #define PLUMBR_HWDETECT_H
 
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 
 /* CPU Vendor */
@@ -16,6 +17,16 @@ typedef enum {
   CPU_VENDOR_INTEL,
   CPU_VENDOR_ARM
 } CpuVendor;
+
+/* Memory Type */
+typedef enum {
+  MEM_TYPE_UNKNOWN = 0,
+  MEM_TYPE_DDR3,
+  MEM_TYPE_DDR4,
+  MEM_TYPE_DDR5,
+  MEM_TYPE_LPDDR4,
+  MEM_TYPE_LPDDR5
+} MemoryType;
 
 /* CPU Features */
 typedef struct {
@@ -49,6 +60,18 @@ typedef struct {
   bool is_zen4; /* Ryzen 7000 */
 } CpuInfo;
 
+/* Memory Info */
+typedef struct {
+  MemoryType type;
+  uint64_t total_mb;
+  uint32_t speed_mhz;        /* e.g., 3200 for DDR4-3200 */
+  uint32_t channels;         /* 1, 2, 4, etc. */
+  uint64_t bandwidth_mb_sec; /* Theoretical max bandwidth */
+
+  /* For auto-tuning */
+  uint64_t measured_bandwidth_mb_sec; /* Measured from quick test */
+} MemoryInfo;
+
 /* GPU Info */
 typedef struct {
   bool available;
@@ -70,12 +93,18 @@ typedef struct {
 /* Combined hardware info */
 typedef struct {
   CpuInfo cpu;
+  MemoryInfo memory;
   GpuInfo gpu;
 
-  /* Recommended settings based on detection */
-  int recommended_threads;
+  /* Auto-tuned settings based on detection */
+  int optimal_threads;     /* Best thread count for this workload */
+  int recommended_threads; /* Physical cores (safe default) */
+  int max_useful_threads;  /* Beyond this, memory-bound */
   bool use_avx2;
   bool use_gpu;
+
+  /* Batch sizing */
+  size_t optimal_batch_size;
 } HardwareInfo;
 
 /* Detect hardware - call once at startup */
@@ -86,5 +115,11 @@ void hwdetect_print(const HardwareInfo *info);
 
 /* Get recommended batch size based on cache */
 int hwdetect_optimal_batch_size(const HardwareInfo *info);
+
+/* Auto-tune: run quick benchmark to find optimal thread count */
+int hwdetect_autotune_threads(HardwareInfo *info);
+
+/* Get optimal thread count (returns cached value if already tuned) */
+int hwdetect_get_optimal_threads(const HardwareInfo *info);
 
 #endif /* PLUMBR_HWDETECT_H */

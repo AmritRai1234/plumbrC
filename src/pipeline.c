@@ -4,6 +4,7 @@
  */
 
 #include "arena.h"
+#include "hwdetect.h"
 #include "io.h"
 #include "parallel.h"
 #include "patterns.h"
@@ -346,11 +347,24 @@ int plumbr_process_fd(PlumbrContext *ctx, int in_fd, int out_fd) {
   int result;
   int num_threads = ctx->config.num_threads;
 
-  /* Auto-detect thread count if 0 */
+  /* Auto-detect optimal thread count if 0 */
   if (num_threads == 0) {
-    num_threads = sysconf(_SC_NPROCESSORS_ONLN);
-    if (num_threads <= 0)
-      num_threads = 1;
+    /* Use hardware detection for optimal tuning */
+    static HardwareInfo hw_info = {0};
+    static int hw_initialized = 0;
+
+    if (!hw_initialized) {
+      hwdetect_init(&hw_info);
+      hwdetect_autotune_threads(&hw_info);
+      hw_initialized = 1;
+    }
+
+    num_threads = hwdetect_get_optimal_threads(&hw_info);
+    if (num_threads <= 0) {
+      num_threads = sysconf(_SC_NPROCESSORS_ONLN);
+      if (num_threads <= 0)
+        num_threads = 1;
+    }
   }
 
   /* Choose processing mode */
