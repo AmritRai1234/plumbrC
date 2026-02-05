@@ -1,0 +1,32 @@
+# Google Cloud Platform Patterns
+# Format: name|literal|regex|replacement
+
+# GCP API Key
+gcp_api_key|AIza|AIza[0-9A-Za-z_-]{35}|[REDACTED:gcp_api_key]
+
+# GCP OAuth Client ID
+gcp_oauth_client||[0-9]+-[a-z0-9]+\.apps\.googleusercontent\.com|[REDACTED:gcp_oauth]
+
+# GCP OAuth Client Secret
+gcp_oauth_secret|GOCSPX-|GOCSPX-[A-Za-z0-9_-]+|[REDACTED:gcp_secret]
+
+# GCP Service Account Email
+gcp_service_account|gserviceaccount.com|[a-z0-9-]+@[a-z0-9-]+\.iam\.gserviceaccount\.com|[REDACTED:gcp_sa]
+
+# GCP Service Account Key ID
+gcp_key_id|private_key_id|private_key_id[\"'\\s:]+[a-f0-9]{40}|[REDACTED:gcp_key_id]
+
+# GCP Private Key
+gcp_private_key|-----BEGIN PRIVATE KEY|-----BEGIN PRIVATE KEY-----|[REDACTED:gcp_private_key]
+
+# Firebase API Key
+firebase_api_key|AIza|AIza[0-9A-Za-z_-]{35}|[REDACTED:firebase_key]
+
+# Firebase Database URL
+firebase_db_url|firebaseio.com|https://[a-z0-9-]+\.firebaseio\.com|[REDACTED:firebase_url]
+
+# Google Maps API Key
+google_maps_key|AIza|AIza[0-9A-Za-z_-]{35}|[REDACTED:maps_key]
+
+# GCP Project ID (common pattern)
+gcp_project_id||[a-z][a-z0-9-]{4,28}[a-z0-9]|[REDACTED:gcp_project]

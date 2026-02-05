@@ -1,0 +1,44 @@
+# RSA Keys
+# Format: name|literal|regex|replacement
+
+# RSA Private Key
+rsa_private|-----BEGIN RSA PRIVATE KEY|-----BEGIN RSA PRIVATE KEY-----|[REDACTED:rsa_private]
+
+# RSA Public Key
+rsa_public|-----BEGIN RSA PUBLIC KEY|-----BEGIN RSA PUBLIC KEY-----|[REDACTED:rsa_public]
+
+# EC Private Key
+ec_private|-----BEGIN EC PRIVATE KEY|-----BEGIN EC PRIVATE KEY-----|[REDACTED:ec_private]
+
+# EC Public Key
+ec_public|-----BEGIN EC PUBLIC KEY|-----BEGIN EC PUBLIC KEY-----|[REDACTED:ec_public]
+
+# OpenSSH Private Key
+openssh_private|-----BEGIN OPENSSH PRIVATE KEY|-----BEGIN OPENSSH PRIVATE KEY-----|[REDACTED:openssh]
+
+# PEM Certificate
+pem_certificate|-----BEGIN CERTIFICATE|-----BEGIN CERTIFICATE-----|[REDACTED:certificate]
+
+# PKCS8 Private Key
+pkcs8_private|-----BEGIN PRIVATE KEY|-----BEGIN PRIVATE KEY-----|[REDACTED:pkcs8]
+
+# PKCS8 Encrypted Private Key
+pkcs8_encrypted|-----BEGIN ENCRYPTED PRIVATE KEY|-----BEGIN ENCRYPTED PRIVATE KEY-----|[REDACTED:pkcs8_enc]
+
+# PGP Private Key
+pgp_private|-----BEGIN PGP PRIVATE KEY|-----BEGIN PGP PRIVATE KEY BLOCK-----|[REDACTED:pgp_private]
+
+# PGP Public Key
+pgp_public|-----BEGIN PGP PUBLIC KEY|-----BEGIN PGP PUBLIC KEY BLOCK-----|[REDACTED:pgp_public]
+
+# DSA Private Key
+dsa_private|-----BEGIN DSA PRIVATE KEY|-----BEGIN DSA PRIVATE KEY-----|[REDACTED:dsa]
+
+# SSH Public Key (RSA)
+ssh_rsa_public|ssh-rsa|ssh-rsa\\s+[A-Za-z0-9+/=]+|[REDACTED:ssh_rsa]
+
+# SSH Public Key (ED25519)
+ssh_ed25519_public|ssh-ed25519|ssh-ed25519\\s+[A-Za-z0-9+/=]+|[REDACTED:ssh_ed25519]
+
+# SSH Public Key (ECDSA)
+ssh_ecdsa_public|ecdsa-sha2|ecdsa-sha2-[a-z0-9]+\\s+[A-Za-z0-9+/=]+|[REDACTED:ssh_ecdsa]

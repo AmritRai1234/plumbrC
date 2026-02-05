@@ -1,0 +1,43 @@
+# Analytics Patterns (Google Analytics, Mixpanel, etc.)
+# Format: name|literal|regex|replacement
+
+
+# ANALYTICS
+google_analytics_tracking_id|UA-|UA\-[A-Za-z0-9_-]+|[REDACTED:analytics]
+google_analytics_4_measurement_id|G-|G\-[A-Za-z0-9_-]+|[REDACTED:analytics]
+google_analytics_api_secret|google_analytics_secret|[^\s]*google_analytics_secret[^\s]*|[REDACTED:analytics]
+google_tag_manager_id|GTM-|GTM\-[A-Za-z0-9_-]+|[REDACTED:analytics]
+google_optimize_id|OPT-|OPT\-[A-Za-z0-9_-]+|[REDACTED:analytics]
+firebase_analytics_app_id|firebase_app_id|[^\s]*firebase_app_id[^\s]*|[REDACTED:analytics]
+google_analytics_client_id|ga_client_id|[^\s]*ga_client_id[^\s]*|[REDACTED:analytics]
+google_analytics_session_id|ga_session_id|[^\s]*ga_session_id[^\s]*|[REDACTED:analytics]
+google_analytics_view_id|analytics_view_id|[^\s]*analytics_view_id[^\s]*|[REDACTED:analytics]
+google_analytics_property_id|analytics_property|[^\s]*analytics_property[^\s]*|[REDACTED:analytics]
+
+# MIXPANEL
+mixpanel_token|mixpanel_token|[^\s]*mixpanel_token[^\s]*|[REDACTED:mixpanel]
+mixpanel_api_secret|mixpanel_api_secret|[^\s]*mixpanel_api_secret[^\s]*|[REDACTED:mixpanel]
+mixpanel_project_token|mixpanel.init(|[^\s]*mixpanel\.init\([^\s]*|[REDACTED:mixpanel]
+mixpanel_service_account|mixpanel_service|[^\s]*mixpanel_service[^\s]*|[REDACTED:mixpanel]
+mixpanel_export_api_secret|mixpanel_export|[^\s]*mixpanel_export[^\s]*|[REDACTED:mixpanel]
+
+# AMPLITUDE
+amplitude_api_key|amplitude_api_key|[^\s]*amplitude_api_key[^\s]*|[REDACTED:amplitude]
+amplitude_secret_key|amplitude_secret|[^\s]*amplitude_secret[^\s]*|[REDACTED:amplitude]
+amplitude_project_key|amplitude.getInstance().init(|[^\s]*amplitude\.getInstance\(\)\.init\([^\s]*|[REDACTED:amplitude]
+amplitude_export_key|amplitude_export|[^\s]*amplitude_export[^\s]*|[REDACTED:amplitude]
+amplitude_scim_token|amplitude_scim|[^\s]*amplitude_scim[^\s]*|[REDACTED:amplitude]
+
+# SEGMENT
+segment_write_key|segment_write_key|[^\s]*segment_write_key[^\s]*|[REDACTED:segment]
+segment_source_key|segment_source|[^\s]*segment_source[^\s]*|[REDACTED:segment]
+segment_workspace_token|segment_workspace|[^\s]*segment_workspace[^\s]*|[REDACTED:segment]
+segment_public_api_token|segment_public_api|[^\s]*segment_public_api[^\s]*|[REDACTED:segment]
+segment_config_api_token|segment_config|[^\s]*segment_config[^\s]*|[REDACTED:segment]
+
+# HEAP
+heap_app_id|heap.load(|[^\s]*heap\.load\([^\s]*|[REDACTED:heap]
+heap_api_key|heap_api_key|[^\s]*heap_api_key[^\s]*|[REDACTED:heap]
+heap_user_id|heap.identify(|[^\s]*heap\.identify\([^\s]*|[REDACTED:heap]
+heap_environment_id|heap_environment|[^\s]*heap_environment[^\s]*|[REDACTED:heap]
+heap_access_token|heap_access_token|[^\s]*heap_access_token[^\s]*|[REDACTED:heap]

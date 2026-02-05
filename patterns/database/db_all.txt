@@ -1,0 +1,41 @@
+# Database Connection Patterns
+# Format: name|literal|regex|replacement
+
+
+# POSTGRESQL
+postgres_connection_string|postgres://|postgres://[A-Za-z0-9_-]+|[REDACTED:postgresql]
+postgresql_connection_string|postgresql://|postgresql://[A-Za-z0-9_-]+|[REDACTED:postgresql]
+postgres_password_url|postgres://|[^\s]*postgres://[^\s]*|[REDACTED:postgresql]
+postgresql_ssl_connection|sslmode=|[^\s]*sslmode=[^\s]*|[REDACTED:postgresql]
+postgres_jdbc_url|jdbc:postgresql://|[^\s]*jdbc:postgresql://[^\s]*|[REDACTED:postgresql]
+postgres_odbc_connection|Driver={PostgreSQL|[^\s]*Driver=\{PostgreSQL[^\s]*|[REDACTED:postgresql]
+postgres_user_password|PGPASSWORD|[^\s]*PGPASSWORD[^\s]*|[REDACTED:postgresql]
+postgres_connection_file|.pgpass|[^\s]*\.pgpass[^\s]*|[REDACTED:postgresql]
+postgres_service_file|pg_service|[^\s]*pg_service[^\s]*|[REDACTED:postgresql]
+postgres_replication_password|replication|[^\s]*replication[^\s]*|[REDACTED:postgresql]
+
+# MONGODB
+mongodb_connection_string|mongodb://|mongodb://[A-Za-z0-9_-]+|[REDACTED:mongodb]
+mongodb_srv_connection_string|mongodb+srv://|mongodb\+srv://[A-Za-z0-9_-]+|[REDACTED:mongodb]
+mongodb_atlas_connection|mongodb.net|[^\s]*mongodb\.net[^\s]*|[REDACTED:mongodb]
+mongodb_password_url|mongodb://|[^\s]*mongodb://[^\s]*|[REDACTED:mongodb]
+mongodb_connection_options|?retryWrites=true|[^\s]*\?retryWrites=true[^\s]*|[REDACTED:mongodb]
+mongodb_replica_set|replicaSet=|[^\s]*replicaSet=[^\s]*|[REDACTED:mongodb]
+mongodb_auth_source|authSource=|[^\s]*authSource=[^\s]*|[REDACTED:mongodb]
+mongodb_tls_connection|tls=true|[^\s]*tls=true[^\s]*|[REDACTED:mongodb]
+mongodb_x509_certificate|authMechanism=MONGODB-X509|[^\s]*authMechanism=MONGODB\-X509[^\s]*|[REDACTED:mongodb]
+mongodb_aws_iam|authMechanism=MONGODB-AWS|[^\s]*authMechanism=MONGODB\-AWS[^\s]*|[REDACTED:mongodb]
+
+# MYSQL
+mysql_connection_string|mysql://|mysql://[A-Za-z0-9_-]+|[REDACTED:mysql]
+mysql_jdbc_url|jdbc:mysql://|[^\s]*jdbc:mysql://[^\s]*|[REDACTED:mysql]
+mariadb_connection_string|mariadb://|mariadb://[A-Za-z0-9_-]+|[REDACTED:mysql]
+mysql_password_url|mysql://|[^\s]*mysql://[^\s]*|[REDACTED:mysql]
+mysql_config_file|my.cnf|[^\s]*my\.cnf[^\s]*|[REDACTED:mysql]
+
+# REDIS
+redis_connection_string|redis://|redis://[A-Za-z0-9_-]+|[REDACTED:redis]
+rediss_connection_string|rediss://|rediss://[A-Za-z0-9_-]+|[REDACTED:redis]
+redis_password_url|redis://:|[^\s]*redis://:[^\s]*|[REDACTED:redis]
+redis_cluster_connection|redis-cluster|[^\s]*redis\-cluster[^\s]*|[REDACTED:redis]
+redis_sentinel_connection|redis-sentinel|[^\s]*redis\-sentinel[^\s]*|[REDACTED:redis]

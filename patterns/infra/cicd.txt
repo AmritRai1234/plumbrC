@@ -1,0 +1,67 @@
+# CI/CD and Package Registry Patterns
+# Format: name|literal|regex|replacement
+
+
+# NPM
+npm_access_token|npm_|npm_[A-Za-z0-9_-]+|[REDACTED:npm]
+npm_auth_token|_authToken=|[^\s]*_authToken=[^\s]*|[REDACTED:npm]
+npm_registry_token|//registry.npmjs.org/:_authToken=|[^\s]*//registry\.npmjs\.org/:_authToken=[^\s]*|[REDACTED:npm]
+npm_classic_token|_auth=|[^\s]*_auth=[^\s]*|[REDACTED:npm]
+npm_publish_token|NPM_TOKEN|[^\s]*NPM_TOKEN[^\s]*|[REDACTED:npm]
+npm_read_token|npm_read|[^\s]*npm_read[^\s]*|[REDACTED:npm]
+npm_automation_token|npm_automation|[^\s]*npm_automation[^\s]*|[REDACTED:npm]
+npm_cidr_whitelist_token|npm_cidr|[^\s]*npm_cidr[^\s]*|[REDACTED:npm]
+npm_granular_token|npm_granular|[^\s]*npm_granular[^\s]*|[REDACTED:npm]
+npmrc_file|.npmrc|[^\s]*\.npmrc[^\s]*|[REDACTED:npm]
+
+# PYPI
+pypi_upload_token|pypi-AgEIcHlwaS5vcmc|pypi\-AgEIcHlwaS5vcmc[A-Za-z0-9_-]+|[REDACTED:pypi]
+pypi_api_token|PYPI_TOKEN|[^\s]*PYPI_TOKEN[^\s]*|[REDACTED:pypi]
+pypi_password|twine upload|[^\s]*twine\ upload[^\s]*|[REDACTED:pypi]
+pypirc_file|.pypirc|[^\s]*\.pypirc[^\s]*|[REDACTED:pypi]
+testpypi_token|test.pypi.org|[^\s]*test\.pypi\.org[^\s]*|[REDACTED:pypi]
+
+# DOCKER
+dockerhub_password|docker.io|[^\s]*docker\.io[^\s]*|[REDACTED:docker]
+docker_personal_access_token|dckr_pat_|[^\s]*dckr_pat_[^\s]*|[REDACTED:docker]
+docker_config_json|config.json|[^\s]*config\.json[^\s]*|[REDACTED:docker]
+gcr_docker_auth|gcr.io|[^\s]*gcr\.io[^\s]*|[REDACTED:docker]
+ecr_docker_auth|ecr.aws|[^\s]*ecr\.aws[^\s]*|[REDACTED:docker]
+azure_acr_auth|azurecr.io|[^\s]*azurecr\.io[^\s]*|[REDACTED:docker]
+quay_io_auth|quay.io|[^\s]*quay\.io[^\s]*|[REDACTED:docker]
+github_container_registry|ghcr.io|[^\s]*ghcr\.io[^\s]*|[REDACTED:docker]
+
+# GITHUB_ACTIONS
+github_actions_token|GITHUB_TOKEN|[^\s]*GITHUB_TOKEN[^\s]*|[REDACTED:github_actions]
+github_actions_secret|secrets.|[^\s]*secrets\.[^\s]*|[REDACTED:github_actions]
+github_actions_pat|GH_TOKEN|[^\s]*GH_TOKEN[^\s]*|[REDACTED:github_actions]
+github_actions_deploy_key|DEPLOY_KEY|[^\s]*DEPLOY_KEY[^\s]*|[REDACTED:github_actions]
+github_actions_environment|environment:|[^\s]*environment:[^\s]*|[REDACTED:github_actions]
+
+# CIRCLECI
+circleci_api_token|CIRCLE_TOKEN|[^\s]*CIRCLE_TOKEN[^\s]*|[REDACTED:circleci]
+circleci_personal_token|circleci_token|[^\s]*circleci_token[^\s]*|[REDACTED:circleci]
+circleci_project_token|circleci.com|[^\s]*circleci\.com[^\s]*|[REDACTED:circleci]
+circleci_context_secret|context:|[^\s]*context:[^\s]*|[REDACTED:circleci]
+circleci_ssh_key|add_ssh_keys|[^\s]*add_ssh_keys[^\s]*|[REDACTED:circleci]
+
+# TRAVIS
+travis_ci_token|TRAVIS_TOKEN|[^\s]*TRAVIS_TOKEN[^\s]*|[REDACTED:travis]
+travis_api_token|travis-ci.org|[^\s]*travis\-ci\.org[^\s]*|[REDACTED:travis]
+travis_encrypted_secret|secure:|[^\s]*secure:[^\s]*|[REDACTED:travis]
+travis_deploy_key|travis encrypt|[^\s]*travis\ encrypt[^\s]*|[REDACTED:travis]
+travis_github_token|GITHUB_TOKEN|[^\s]*GITHUB_TOKEN[^\s]*|[REDACTED:travis]
+
+# JENKINS
+jenkins_api_token|JENKINS_TOKEN|[^\s]*JENKINS_TOKEN[^\s]*|[REDACTED:jenkins]
+jenkins_api_key|jenkins_api_key|[^\s]*jenkins_api_key[^\s]*|[REDACTED:jenkins]
+jenkins_credentials|credentials.xml|[^\s]*credentials\.xml[^\s]*|[REDACTED:jenkins]
+jenkins_secret_text|secretText|[^\s]*secretText[^\s]*|[REDACTED:jenkins]
+jenkins_ssh_credentials|sshUserPrivateKey|[^\s]*sshUserPrivateKey[^\s]*|[REDACTED:jenkins]
+
+# GITLAB_CI
+gitlab_ci_token|CI_JOB_TOKEN|[^\s]*CI_JOB_TOKEN[^\s]*|[REDACTED:gitlab_ci]
+gitlab_runner_token|CI_RUNNER_TOKEN|[^\s]*CI_RUNNER_TOKEN[^\s]*|[REDACTED:gitlab_ci]
+gitlab_deploy_token|CI_DEPLOY_USER|[^\s]*CI_DEPLOY_USER[^\s]*|[REDACTED:gitlab_ci]
+gitlab_registry_token|CI_REGISTRY|[^\s]*CI_REGISTRY[^\s]*|[REDACTED:gitlab_ci]
+gitlab_trigger_token|CI_PIPELINE_TRIGGERED|[^\s]*CI_PIPELINE_TRIGGERED[^\s]*|[REDACTED:gitlab_ci]

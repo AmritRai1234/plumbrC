@@ -1,0 +1,53 @@
+# Email Service Patterns (SendGrid, Mailgun, Mailchimp)
+# Format: name|literal|regex|replacement
+
+
+# SENDGRID
+sendgrid_api_key|SG.|SG\.[A-Za-z0-9_-]+|[REDACTED:sendgrid]
+sendgrid_webhook_verify_key|sendgrid_webhook|[^\s]*sendgrid_webhook[^\s]*|[REDACTED:sendgrid]
+sendgrid_api_key_v2|sendgrid_api_key|[^\s]*sendgrid_api_key[^\s]*|[REDACTED:sendgrid]
+sendgrid_event_webhook_key|sendgrid_event|[^\s]*sendgrid_event[^\s]*|[REDACTED:sendgrid]
+sendgrid_parse_webhook_key|sendgrid_parse|[^\s]*sendgrid_parse[^\s]*|[REDACTED:sendgrid]
+sendgrid_inbound_parse_key|sendgrid_inbound|[^\s]*sendgrid_inbound[^\s]*|[REDACTED:sendgrid]
+sendgrid_mail_settings_key|sendgrid_mail|[^\s]*sendgrid_mail[^\s]*|[REDACTED:sendgrid]
+sendgrid_tracking_settings_key|sendgrid_tracking|[^\s]*sendgrid_tracking[^\s]*|[REDACTED:sendgrid]
+sendgrid_api_username|sendgrid_username|[^\s]*sendgrid_username[^\s]*|[REDACTED:sendgrid]
+sendgrid_api_password|sendgrid_password|[^\s]*sendgrid_password[^\s]*|[REDACTED:sendgrid]
+
+# MAILGUN
+mailgun_api_key|key-|key\-[A-Za-z0-9_-]+|[REDACTED:mailgun]
+mailgun_private_api_key|mailgun_private|[^\s]*mailgun_private[^\s]*|[REDACTED:mailgun]
+mailgun_public_api_key|mailgun_public|[^\s]*mailgun_public[^\s]*|[REDACTED:mailgun]
+mailgun_webhook_signing_key|mailgun_webhook|[^\s]*mailgun_webhook[^\s]*|[REDACTED:mailgun]
+mailgun_smtp_password|mailgun_smtp|[^\s]*mailgun_smtp[^\s]*|[REDACTED:mailgun]
+mailgun_domain_key|mailgun.org|[^\s]*mailgun\.org[^\s]*|[REDACTED:mailgun]
+mailgun_route_key|mailgun_route|[^\s]*mailgun_route[^\s]*|[REDACTED:mailgun]
+mailgun_mailing_list_key|mailgun_list|[^\s]*mailgun_list[^\s]*|[REDACTED:mailgun]
+mailgun_batch_key|mailgun_batch|[^\s]*mailgun_batch[^\s]*|[REDACTED:mailgun]
+mailgun_template_key|mailgun_template|[^\s]*mailgun_template[^\s]*|[REDACTED:mailgun]
+
+# MAILCHIMP
+mailchimp_api_key|-us|[A-Za-z0-9_-]+\-us|[REDACTED:mailchimp]
+mailchimp_oauth_token|mailchimp_oauth|[^\s]*mailchimp_oauth[^\s]*|[REDACTED:mailchimp]
+mailchimp_webhook_secret|mailchimp_webhook|[^\s]*mailchimp_webhook[^\s]*|[REDACTED:mailchimp]
+mailchimp_list_id|mailchimp_list|[^\s]*mailchimp_list[^\s]*|[REDACTED:mailchimp]
+mailchimp_campaign_id|mailchimp_campaign|[^\s]*mailchimp_campaign[^\s]*|[REDACTED:mailchimp]
+mailchimp_automation_id|mailchimp_automation|[^\s]*mailchimp_automation[^\s]*|[REDACTED:mailchimp]
+mailchimp_template_id|mailchimp_template|[^\s]*mailchimp_template[^\s]*|[REDACTED:mailchimp]
+mailchimp_segment_id|mailchimp_segment|[^\s]*mailchimp_segment[^\s]*|[REDACTED:mailchimp]
+mailchimp_datacenter|.api.mailchimp.com|[^\s]*\.api\.mailchimp\.com[^\s]*|[REDACTED:mailchimp]
+mailchimp_mandrill_key|mandrill|[^\s]*mandrill[^\s]*|[REDACTED:mailchimp]
+
+# AWS_SES
+aws_ses_smtp_username|ses_smtp|[^\s]*ses_smtp[^\s]*|[REDACTED:aws_ses]
+aws_ses_smtp_password|ses_password|[^\s]*ses_password[^\s]*|[REDACTED:aws_ses]
+aws_ses_access_key|email.amazonaws.com|[^\s]*email\.amazonaws\.com[^\s]*|[REDACTED:aws_ses]
+aws_ses_configuration_set|ses_configuration|[^\s]*ses_configuration[^\s]*|[REDACTED:aws_ses]
+aws_ses_identity|ses_identity|[^\s]*ses_identity[^\s]*|[REDACTED:aws_ses]
+
+# POSTMARK
+postmark_server_token|postmark_server|[^\s]*postmark_server[^\s]*|[REDACTED:postmark]
+postmark_account_token|postmark_account|[^\s]*postmark_account[^\s]*|[REDACTED:postmark]
+postmark_webhook_secret|postmark_webhook|[^\s]*postmark_webhook[^\s]*|[REDACTED:postmark]
+postmark_inbound_hash|postmark_inbound|[^\s]*postmark_inbound[^\s]*|[REDACTED:postmark]
+postmark_message_stream|postmark_stream|[^\s]*postmark_stream[^\s]*|[REDACTED:postmark]

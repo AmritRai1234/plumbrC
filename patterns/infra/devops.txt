@@ -1,0 +1,74 @@
+# Infrastructure and DevOps Patterns
+# Format: name|literal|regex|replacement
+
+# Heroku API Key
+heroku_api_key||[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[REDACTED:heroku]
+
+# DigitalOcean Personal Access Token
+digitalocean_pat|dop_v1_|dop_v1_[a-f0-9]{64}|[REDACTED:digitalocean]
+
+# DigitalOcean OAuth Token
+digitalocean_oauth|doo_v1_|doo_v1_[a-f0-9]{64}|[REDACTED:do_oauth]
+
+# DigitalOcean Refresh Token
+digitalocean_refresh|dor_v1_|dor_v1_[a-f0-9]{64}|[REDACTED:do_refresh]
+
+# Kubernetes Secret
+k8s_secret|kind: Secret|kind:\\s*Secret|[REDACTED:k8s_secret]
+
+# Docker Hub Token
+dockerhub_pat|dckr_pat_|dckr_pat_[A-Za-z0-9_-]+|[REDACTED:dockerhub]
+
+# Docker Registry Password
+docker_registry_password|DOCKER_PASSWORD|DOCKER_PASSWORD[\"'\\s:=]+[^\\s]+|[REDACTED:docker_pass]
+
+# NPM Token
+npm_token|npm_|npm_[A-Za-z0-9]{36}|[REDACTED:npm]
+
+# NPM Auth Token
+npm_auth_token|_authToken|_authToken[\"'\\s:=]+[A-Za-z0-9_-]+|[REDACTED:npm_auth]
+
+# PyPI Token
+pypi_token|pypi-|pypi-[A-Za-z0-9_-]{50,}|[REDACTED:pypi]
+
+# RubyGems API Key
+rubygems_api_key|rubygems_api_key|rubygems[_-]?api[_-]?key[=\"'\\s:]+[a-f0-9]+|[REDACTED:rubygems]
+
+# Terraform Cloud Token
+terraform_cloud|TFE_TOKEN|TFE_TOKEN[\"'\\s:=]+[A-Za-z0-9.]+|[REDACTED:terraform]
+
+# Vault Token
+vault_token|VAULT_TOKEN|VAULT_TOKEN[\"'\\s:=]+[a-z0-9-]+|[REDACTED:vault]
+
+# Consul Token
+consul_token|CONSUL_TOKEN|CONSUL_TOKEN[\"'\\s:=]+[a-z0-9-]+|[REDACTED:consul]
+
+# CircleCI Token
+circleci_token|circle-token|circle[_-]?token[\"'\\s:=]+[a-f0-9]+|[REDACTED:circleci]
+
+# Travis CI Token
+travis_token|travis|travis[_-]?(?:api[_-]?)?token[\"'\\s:=]+[A-Za-z0-9]+|[REDACTED:travis]
+
+# Jenkins Token
+jenkins_token|jenkins|jenkins[_-]?(?:api[_-]?)?token[\"'\\s:=]+[A-Za-z0-9]+|[REDACTED:jenkins]
+
+# Datadog API Key
+datadog_api_key|DD_API_KEY|DD_API_KEY[\"'\\s:=]+[a-f0-9]{32}|[REDACTED:datadog]
+
+# New Relic API Key
+newrelic_api_key|NRAK-|NRAK-[A-Z0-9]{27}|[REDACTED:newrelic]
+
+# Sentry DSN
+sentry_dsn|sentry.io|https://[a-f0-9]+@[a-z0-9]+\\.ingest\\.sentry\\.io/[0-9]+|[REDACTED:sentry]
+
+# Grafana API Key
+grafana_api_key|eyJr|eyJr[A-Za-z0-9_-]+|[REDACTED:grafana]
+
+# PagerDuty API Key
+pagerduty_api_key||[a-z0-9+]{20}|[REDACTED:pagerduty]
+
+# Okta API Token
+okta_api_token|00|00[A-Za-z0-9_-]{40}|[REDACTED:okta]
+
+# Auth0 Client Secret
+auth0_secret|auth0|auth0[_-]?(?:client[_-]?)?secret[\"'\\s:=]+[A-Za-z0-9_-]+|[REDACTED:auth0]

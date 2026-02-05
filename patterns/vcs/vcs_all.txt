@@ -1,0 +1,49 @@
+# Version Control Patterns (GitHub, GitLab, Bitbucket)
+# Format: name|literal|regex|replacement
+
+
+# GITHUB
+github_personal_access_token|ghp_|ghp_[A-Za-z0-9_-]+|[REDACTED:github]
+github_oauth_access_token|gho_|gho_[A-Za-z0-9_-]+|[REDACTED:github]
+github_app_token|ghs_|ghs_[A-Za-z0-9_-]+|[REDACTED:github]
+github_refresh_token|ghr_|ghr_[A-Za-z0-9_-]+|[REDACTED:github]
+github_fine_grained_pat|github_pat_|github_pat_[A-Za-z0-9_-]+|[REDACTED:github]
+github_actions_token|GITHUB_TOKEN|[^\s]*GITHUB_TOKEN[^\s]*|[REDACTED:github]
+github_deploy_key|github.com/|[^\s]*github\.com/[^\s]*|[REDACTED:github]
+github_webhook_secret|github_webhook|[^\s]*github_webhook[^\s]*|[REDACTED:github]
+github_package_token|ghcr.io|[^\s]*ghcr\.io[^\s]*|[REDACTED:github]
+github_enterprise_token|ghe_|[^\s]*ghe_[^\s]*|[REDACTED:github]
+github_codespaces_token|codespaces|[^\s]*codespaces[^\s]*|[REDACTED:github]
+github_copilot_token|copilot|[^\s]*copilot[^\s]*|[REDACTED:github]
+github_dependabot_token|dependabot|[^\s]*dependabot[^\s]*|[REDACTED:github]
+github_ssh_signature|git@github.com|[^\s]*git@github\.com[^\s]*|[REDACTED:github]
+github_gpg_key|-----BEGIN PGP PUBLIC KEY BLOCK-----|[^\s]*\-\-\-\-\-BEGIN\ PGP\ PUBLIC\ KEY\ BLOCK\-\-\-\-\-[^\s]*|[REDACTED:github]
+
+# GITLAB
+gitlab_personal_access_token|glpat-|glpat\-[A-Za-z0-9_-]+|[REDACTED:gitlab]
+gitlab_runner_registration_token|GR1348941|GR1348941[A-Za-z0-9_-]+|[REDACTED:gitlab]
+gitlab_pipeline_trigger_token|glptt-|glptt\-[A-Za-z0-9_-]+|[REDACTED:gitlab]
+gitlab_oauth_token|gitlab_oauth|[^\s]*gitlab_oauth[^\s]*|[REDACTED:gitlab]
+gitlab_deploy_token|gitlab-deploy-token|[^\s]*gitlab\-deploy\-token[^\s]*|[REDACTED:gitlab]
+gitlab_feed_token|feed_token|[^\s]*feed_token[^\s]*|[REDACTED:gitlab]
+gitlab_runner_token|runner_token|[^\s]*runner_token[^\s]*|[REDACTED:gitlab]
+gitlab_job_token|CI_JOB_TOKEN|[^\s]*CI_JOB_TOKEN[^\s]*|[REDACTED:gitlab]
+gitlab_trigger_token|trigger_token|[^\s]*trigger_token[^\s]*|[REDACTED:gitlab]
+gitlab_package_registry|gitlab.com/api/v4/packages|[^\s]*gitlab\.com/api/v4/packages[^\s]*|[REDACTED:gitlab]
+gitlab_container_registry|registry.gitlab.com|[^\s]*registry\.gitlab\.com[^\s]*|[REDACTED:gitlab]
+gitlab_ssh_key|git@gitlab.com|[^\s]*git@gitlab\.com[^\s]*|[REDACTED:gitlab]
+gitlab_webhook_token|gitlab_webhook|[^\s]*gitlab_webhook[^\s]*|[REDACTED:gitlab]
+gitlab_cluster_agent_token|cluster_agent|[^\s]*cluster_agent[^\s]*|[REDACTED:gitlab]
+gitlab_api_key|GITLAB_API|[^\s]*GITLAB_API[^\s]*|[REDACTED:gitlab]
+
+# BITBUCKET
+bitbucket_app_password|bitbucket|[^\s]*bitbucket[^\s]*|[REDACTED:bitbucket]
+bitbucket_access_token|bitbucket.org|[^\s]*bitbucket\.org[^\s]*|[REDACTED:bitbucket]
+bitbucket_oauth_consumer_key|bitbucket_oauth|[^\s]*bitbucket_oauth[^\s]*|[REDACTED:bitbucket]
+bitbucket_oauth_consumer_secret|bitbucket_secret|[^\s]*bitbucket_secret[^\s]*|[REDACTED:bitbucket]
+bitbucket_ssh_key|git@bitbucket.org|[^\s]*git@bitbucket\.org[^\s]*|[REDACTED:bitbucket]
+bitbucket_pipeline_token|BITBUCKET_PIPE|[^\s]*BITBUCKET_PIPE[^\s]*|[REDACTED:bitbucket]
+bitbucket_server_token|bitbucket_server|[^\s]*bitbucket_server[^\s]*|[REDACTED:bitbucket]
+bitbucket_webhook_secret|bitbucket_webhook|[^\s]*bitbucket_webhook[^\s]*|[REDACTED:bitbucket]
+bitbucket_deploy_key|bitbucket_deploy|[^\s]*bitbucket_deploy[^\s]*|[REDACTED:bitbucket]
+bitbucket_api_key|BITBUCKET_API|[^\s]*BITBUCKET_API[^\s]*|[REDACTED:bitbucket]

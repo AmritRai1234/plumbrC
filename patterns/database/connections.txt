@@ -1,0 +1,38 @@
+# Database Connection Patterns
+# Format: name|literal|regex|replacement
+
+# MongoDB Connection String
+mongodb_uri|mongodb://|mongodb(?:\\+srv)?://[^:]+:[^@]+@[^\\s]+|[REDACTED:mongodb]
+
+# MongoDB Atlas URI
+mongodb_atlas|mongodb.net|mongodb\\+srv://[^:]+:[^@]+@[^/]+\\.mongodb\\.net|[REDACTED:mongodb_atlas]
+
+# PostgreSQL Connection String
+postgres_uri|postgres://|postgres(?:ql)?://[^:]+:[^@]+@[^\\s]+|[REDACTED:postgres]
+
+# PostgreSQL Password
+postgres_password|PGPASSWORD|PGPASSWORD[\"'\\s:=]+[^\\s]+|[REDACTED:pg_pass]
+
+# MySQL Connection String
+mysql_uri|mysql://|mysql://[^:]+:[^@]+@[^\\s]+|[REDACTED:mysql]
+
+# MySQL Password
+mysql_password|MYSQL_PASSWORD|MYSQL_PASSWORD[\"'\\s:=]+[^\\s]+|[REDACTED:mysql_pass]
+
+# Redis Connection String
+redis_uri|redis://|redis(?:s)?://[^:]+:[^@]+@[^\\s]+|[REDACTED:redis]
+
+# Redis Password
+redis_password|REDIS_PASSWORD|REDIS_PASSWORD[\"'\\s:=]+[^\\s]+|[REDACTED:redis_pass]
+
+# Elasticsearch URI
+elasticsearch_uri|elasticsearch|https?://[^:]+:[^@]+@[^/]*elastic[^\\s]+|[REDACTED:elasticsearch]
+
+# InfluxDB Token
+influxdb_token||[A-Za-z0-9_=-]{88}|[REDACTED:influxdb]
+
+# CockroachDB Connection
+cockroachdb_uri|cockroachdb://|cockroachdb://[^:]+:[^@]+@[^\\s]+|[REDACTED:cockroachdb]
+
+# Cassandra Password
+cassandra_password|cassandra|cassandra[_-]?password[\"'\\s:=]+[^\\s]+|[REDACTED:cassandra]

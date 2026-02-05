@@ -1,0 +1,65 @@
+# Payment Processor Patterns (Stripe, PayPal, Square, etc.)
+# Format: name|literal|regex|replacement
+
+
+# STRIPE
+stripe_live_secret_key|sk_live_|sk_live_[A-Za-z0-9_-]+|[REDACTED:stripe]
+stripe_test_secret_key|sk_test_|sk_test_[A-Za-z0-9_-]+|[REDACTED:stripe]
+stripe_live_restricted_key|rk_live_|rk_live_[A-Za-z0-9_-]+|[REDACTED:stripe]
+stripe_test_restricted_key|rk_test_|rk_test_[A-Za-z0-9_-]+|[REDACTED:stripe]
+stripe_live_publishable_key|pk_live_|pk_live_[A-Za-z0-9_-]+|[REDACTED:stripe]
+stripe_test_publishable_key|pk_test_|pk_test_[A-Za-z0-9_-]+|[REDACTED:stripe]
+stripe_webhook_secret|whsec_|whsec_[A-Za-z0-9_-]+|[REDACTED:stripe]
+stripe_connect_access_token|sk_live_|sk_live_[A-Za-z0-9_-]+|[REDACTED:stripe]
+stripe_client_id|ca_|ca_[A-Za-z0-9_-]+|[REDACTED:stripe]
+stripe_terminal_reader_key|tmr_|tmr_[A-Za-z0-9_-]+|[REDACTED:stripe]
+stripe_identity_verification|vs_|vs_[A-Za-z0-9_-]+|[REDACTED:stripe]
+stripe_issuing_card|ic_|ic_[A-Za-z0-9_-]+|[REDACTED:stripe]
+stripe_climate_order|climorder_|climorder_[A-Za-z0-9_-]+|[REDACTED:stripe]
+stripe_apps_secret|sk_app_|sk_app_[A-Za-z0-9_-]+|[REDACTED:stripe]
+stripe_financial_connections|fc_|fc_[A-Za-z0-9_-]+|[REDACTED:stripe]
+
+# SQUARE
+square_access_token|sq0atp-|sq0atp\-[A-Za-z0-9_-]+|[REDACTED:square]
+square_oauth_secret|sq0csp-|sq0csp\-[A-Za-z0-9_-]+|[REDACTED:square]
+square_production_access_token|EAAA|EAAA[A-Za-z0-9_-]+|[REDACTED:square]
+square_sandbox_access_token|EAAAEs|EAAAEs[A-Za-z0-9_-]+|[REDACTED:square]
+square_webhook_signature_key|square_webhook|[^\s]*square_webhook[^\s]*|[REDACTED:square]
+square_application_id|square_app|[^\s]*square_app[^\s]*|[REDACTED:square]
+square_merchant_id|square_merchant|[^\s]*square_merchant[^\s]*|[REDACTED:square]
+square_location_id|square_location|[^\s]*square_location[^\s]*|[REDACTED:square]
+square_customer_id|square_customer|[^\s]*square_customer[^\s]*|[REDACTED:square]
+square_payment_token|cnon:|[^\s]*cnon:[^\s]*|[REDACTED:square]
+
+# PAYPAL
+paypal_braintree_access_token|access_token$production$|[^\s]*access_token\$production\$[^\s]*|[REDACTED:paypal]
+paypal_client_id|paypal_client_id|[^\s]*paypal_client_id[^\s]*|[REDACTED:paypal]
+paypal_client_secret|paypal_client_secret|[^\s]*paypal_client_secret[^\s]*|[REDACTED:paypal]
+paypal_webhook_id|paypal_webhook|[^\s]*paypal_webhook[^\s]*|[REDACTED:paypal]
+paypal_api_signature|paypal_signature|[^\s]*paypal_signature[^\s]*|[REDACTED:paypal]
+paypal_identity_token|paypal_identity|[^\s]*paypal_identity[^\s]*|[REDACTED:paypal]
+paypal_oauth_token|paypal_oauth|[^\s]*paypal_oauth[^\s]*|[REDACTED:paypal]
+paypal_merchant_id|paypal_merchant|[^\s]*paypal_merchant[^\s]*|[REDACTED:paypal]
+paypal_payer_id|PayerID|[^\s]*PayerID[^\s]*|[REDACTED:paypal]
+paypal_rest_api_key|paypal.com/v1|[^\s]*paypal\.com/v1[^\s]*|[REDACTED:paypal]
+
+# BRAINTREE
+braintree_access_token|access_token$|[^\s]*access_token\$[^\s]*|[REDACTED:braintree]
+braintree_merchant_id|braintree_merchant|[^\s]*braintree_merchant[^\s]*|[REDACTED:braintree]
+braintree_public_key|braintree_public|[^\s]*braintree_public[^\s]*|[REDACTED:braintree]
+braintree_private_key|braintree_private|[^\s]*braintree_private[^\s]*|[REDACTED:braintree]
+braintree_tokenization_key|braintree_tokenization|[^\s]*braintree_tokenization[^\s]*|[REDACTED:braintree]
+
+# ADYEN
+adyen_api_key|adyen|[^\s]*adyen[^\s]*|[REDACTED:adyen]
+adyen_client_key|adyen_client|[^\s]*adyen_client[^\s]*|[REDACTED:adyen]
+adyen_webhook_hmac|adyen_hmac|[^\s]*adyen_hmac[^\s]*|[REDACTED:adyen]
+adyen_merchant_account|adyen_merchant|[^\s]*adyen_merchant[^\s]*|[REDACTED:adyen]
+adyen_recurring_token|adyen_recurring|[^\s]*adyen_recurring[^\s]*|[REDACTED:adyen]
+
+# CHECKOUT
+checkout_secret_key|sk_|sk_[A-Za-z0-9_-]+|[REDACTED:checkout]
+checkout_public_key|pk_|pk_[A-Za-z0-9_-]+|[REDACTED:checkout]
+checkout_webhook_secret|checkout_webhook|[^\s]*checkout_webhook[^\s]*|[REDACTED:checkout]
+checkout_processing_channel|pc_|[^\s]*pc_[^\s]*|[REDACTED:checkout]
+checkout_oauth_token|checkout_oauth|[^\s]*checkout_oauth[^\s]*|[REDACTED:checkout]

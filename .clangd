@@ -1,0 +1,4 @@
+CompileFlags:
+  Add:
+    - "-I/home/amrit/plumbrC/include"
+    - "-std=c11"

@@ -1,0 +1,51 @@
+# Cryptographic Keys and Certificates
+# Format: name|literal|regex|replacement
+
+
+# SSH
+ssh_rsa_private_key|-----BEGIN RSA PRIVATE KEY-----|\-\-\-\-\-BEGIN\ RSA\ PRIVATE\ KEY\-\-\-\-\-|[REDACTED:ssh]
+ssh_dsa_private_key|-----BEGIN DSA PRIVATE KEY-----|\-\-\-\-\-BEGIN\ DSA\ PRIVATE\ KEY\-\-\-\-\-|[REDACTED:ssh]
+ssh_ec_private_key|-----BEGIN EC PRIVATE KEY-----|\-\-\-\-\-BEGIN\ EC\ PRIVATE\ KEY\-\-\-\-\-|[REDACTED:ssh]
+ssh_openssh_private_key|-----BEGIN OPENSSH PRIVATE KEY-----|\-\-\-\-\-BEGIN\ OPENSSH\ PRIVATE\ KEY\-\-\-\-\-|[REDACTED:ssh]
+ssh_encrypted_private_key|-----BEGIN ENCRYPTED PRIVATE KEY-----|\-\-\-\-\-BEGIN\ ENCRYPTED\ PRIVATE\ KEY\-\-\-\-\-|[REDACTED:ssh]
+ssh_ed25519_private_key|ssh-ed25519|[^\s]*ssh\-ed25519[^\s]*|[REDACTED:ssh]
+ssh_rsa_public_key|ssh-rsa AAAA|ssh\-rsa\ AAAA[A-Za-z0-9_-]+|[REDACTED:ssh]
+ssh_dss_public_key|ssh-dss AAAA|ssh\-dss\ AAAA[A-Za-z0-9_-]+|[REDACTED:ssh]
+ssh_ecdsa_public_key|ecdsa-sha2-|ecdsa\-sha2\-[A-Za-z0-9_-]+|[REDACTED:ssh]
+ssh_ed25519_public_key|ssh-ed25519 AAAA|ssh\-ed25519\ AAAA[A-Za-z0-9_-]+|[REDACTED:ssh]
+ssh_authorized_keys|authorized_keys|[^\s]*authorized_keys[^\s]*|[REDACTED:ssh]
+ssh_known_hosts|known_hosts|[^\s]*known_hosts[^\s]*|[REDACTED:ssh]
+ssh_config_private_key|IdentityFile|[^\s]*IdentityFile[^\s]*|[REDACTED:ssh]
+putty_private_key|PuTTY-User-Key-File|PuTTY\-User\-Key\-File|[REDACTED:ssh]
+ssh_certificate|-cert-v01@openssh.com|[^\s]*\-cert\-v01@openssh\.com[^\s]*|[REDACTED:ssh]
+
+# CERTIFICATE
+pkcs8_private_key|-----BEGIN PRIVATE KEY-----|\-\-\-\-\-BEGIN\ PRIVATE\ KEY\-\-\-\-\-|[REDACTED:certificate]
+pkcs8_encrypted_private_key|-----BEGIN ENCRYPTED PRIVATE KEY-----|\-\-\-\-\-BEGIN\ ENCRYPTED\ PRIVATE\ KEY\-\-\-\-\-|[REDACTED:certificate]
+x509_certificate|-----BEGIN CERTIFICATE-----|\-\-\-\-\-BEGIN\ CERTIFICATE\-\-\-\-\-|[REDACTED:certificate]
+certificate_request|-----BEGIN CERTIFICATE REQUEST-----|\-\-\-\-\-BEGIN\ CERTIFICATE\ REQUEST\-\-\-\-\-|[REDACTED:certificate]
+pkcs7_certificate|-----BEGIN PKCS7-----|\-\-\-\-\-BEGIN\ PKCS7\-\-\-\-\-|[REDACTED:certificate]
+ssl_session_ticket_key|ssl_session_ticket_key|[^\s]*ssl_session_ticket_key[^\s]*|[REDACTED:certificate]
+tls_private_key|ssl_certificate_key|[^\s]*ssl_certificate_key[^\s]*|[REDACTED:certificate]
+certificate_chain|ssl_trusted_certificate|[^\s]*ssl_trusted_certificate[^\s]*|[REDACTED:certificate]
+pkcs12_certificate|.p12|[^\s]*\.p12[^\s]*|[REDACTED:certificate]
+java_keystore|.jks|[^\s]*\.jks[^\s]*|[REDACTED:certificate]
+
+# PGP
+pgp_private_key_block|-----BEGIN PGP PRIVATE KEY BLOCK-----|\-\-\-\-\-BEGIN\ PGP\ PRIVATE\ KEY\ BLOCK\-\-\-\-\-|[REDACTED:pgp]
+pgp_public_key_block|-----BEGIN PGP PUBLIC KEY BLOCK-----|\-\-\-\-\-BEGIN\ PGP\ PUBLIC\ KEY\ BLOCK\-\-\-\-\-|[REDACTED:pgp]
+pgp_message|-----BEGIN PGP MESSAGE-----|\-\-\-\-\-BEGIN\ PGP\ MESSAGE\-\-\-\-\-|[REDACTED:pgp]
+pgp_signature|-----BEGIN PGP SIGNATURE-----|\-\-\-\-\-BEGIN\ PGP\ SIGNATURE\-\-\-\-\-|[REDACTED:pgp]
+pgp_signed_message|-----BEGIN PGP SIGNED MESSAGE-----|\-\-\-\-\-BEGIN\ PGP\ SIGNED\ MESSAGE\-\-\-\-\-|[REDACTED:pgp]
+gpg_private_key|gpg --export-secret-keys|[^\s]*gpg\ \-\-export\-secret\-keys[^\s]*|[REDACTED:pgp]
+gpg_passphrase|gpg-passphrase|[^\s]*gpg\-passphrase[^\s]*|[REDACTED:pgp]
+gnupg_home|GNUPGHOME|[^\s]*GNUPGHOME[^\s]*|[REDACTED:pgp]
+pgp_key_fingerprint|Key fingerprint|[^\s]*Key\ fingerprint[^\s]*|[REDACTED:pgp]
+gpg_agent_info|GPG_AGENT_INFO|[^\s]*GPG_AGENT_INFO[^\s]*|[REDACTED:pgp]
+
+# JWT
+jwt_token|eyJ|eyJ[A-Za-z0-9_-]+|[REDACTED:jwt]
+jwt_bearer_token|Bearer eyJ|[^\s]*Bearer\ eyJ[^\s]*|[REDACTED:jwt]
+jwt_refresh_token|refresh_token|[^\s]*refresh_token[^\s]*|[REDACTED:jwt]
+oauth_access_token|access_token|[^\s]*access_token[^\s]*|[REDACTED:jwt]
+jwt_secret_key|jwt_secret|[^\s]*jwt_secret[^\s]*|[REDACTED:jwt]

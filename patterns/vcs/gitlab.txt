@@ -1,0 +1,26 @@
+# GitLab Patterns
+# Format: name|literal|regex|replacement
+
+# GitLab Personal Access Token
+gitlab_pat|glpat-|glpat-[A-Za-z0-9_-]{20}|[REDACTED:gitlab_pat]
+
+# GitLab Pipeline Token
+gitlab_pipeline|CI_JOB_TOKEN|CI_JOB_TOKEN[\"'\\s:=]+[A-Za-z0-9_-]+|[REDACTED:gitlab_ci]
+
+# GitLab Deploy Token
+gitlab_deploy|gldt-|gldt-[A-Za-z0-9_-]+|[REDACTED:gitlab_deploy]
+
+# GitLab Runner Token
+gitlab_runner|GR1348941|GR1348941[A-Za-z0-9_-]+|[REDACTED:gitlab_runner]
+
+# GitLab OAuth Token
+gitlab_oauth|gloas-|gloas-[A-Za-z0-9_-]+|[REDACTED:gitlab_oauth]
+
+# GitLab Feed Token
+gitlab_feed|feed_token|feed_token[\"'\\s:=]+[A-Za-z0-9_-]+|[REDACTED:gitlab_feed]
+
+# GitLab Incoming Email Token
+gitlab_email_token||[a-z0-9]{32}@incoming\.gitlab\.com|[REDACTED:gitlab_email]
+
+# GitLab Trigger Token
+gitlab_trigger|trigger|trigger[_-]?token[\"'\\s:=]+[A-Za-z0-9_-]+|[REDACTED:gitlab_trigger]

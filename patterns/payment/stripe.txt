@@ -1,0 +1,32 @@
+# Stripe Patterns
+# Format: name|literal|regex|replacement
+
+# Stripe Secret Key (Live)
+stripe_secret_live|sk_live_|sk_live_[A-Za-z0-9]{24,}|[REDACTED:stripe_secret]
+
+# Stripe Secret Key (Test)
+stripe_secret_test|sk_test_|sk_test_[A-Za-z0-9]{24,}|[REDACTED:stripe_test]
+
+# Stripe Publishable Key (Live)
+stripe_pub_live|pk_live_|pk_live_[A-Za-z0-9]{24,}|[REDACTED:stripe_pub]
+
+# Stripe Publishable Key (Test)
+stripe_pub_test|pk_test_|pk_test_[A-Za-z0-9]{24,}|[REDACTED:stripe_pub_test]
+
+# Stripe Restricted Key (Live)
+stripe_restricted_live|rk_live_|rk_live_[A-Za-z0-9]{24,}|[REDACTED:stripe_restricted]
+
+# Stripe Restricted Key (Test)
+stripe_restricted_test|rk_test_|rk_test_[A-Za-z0-9]{24,}|[REDACTED:stripe_restricted_test]
+
+# Stripe Webhook Secret
+stripe_webhook|whsec_|whsec_[A-Za-z0-9]{32,}|[REDACTED:stripe_webhook]
+
+# Stripe Customer ID
+stripe_customer|cus_|cus_[A-Za-z0-9]{14,}|[REDACTED:stripe_customer]
+
+# Stripe Subscription ID
+stripe_subscription|sub_|sub_[A-Za-z0-9]{14,}|[REDACTED:stripe_sub]
+
+# Stripe Payment Intent
+stripe_payment_intent|pi_|pi_[A-Za-z0-9]{24,}|[REDACTED:stripe_pi]

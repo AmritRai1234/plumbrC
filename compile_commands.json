@@ -1,0 +1,47 @@
+[
+  {
+    "directory": "/home/amrit/plumbrC",
+    "command": "gcc -std=c11 -I/home/amrit/plumbrC/include -c src/arena.c -o build/obj/arena.o",
+    "file": "src/arena.c"
+  },
+  {
+    "directory": "/home/amrit/plumbrC",
+    "command": "gcc -std=c11 -I/home/amrit/plumbrC/include -c src/io.c -o build/obj/io.o",
+    "file": "src/io.c"
+  },
+  {
+    "directory": "/home/amrit/plumbrC",
+    "command": "gcc -std=c11 -I/home/amrit/plumbrC/include -c src/aho_corasick.c -o build/obj/aho_corasick.o",
+    "file": "src/aho_corasick.c"
+  },
+  {
+    "directory": "/home/amrit/plumbrC",
+    "command": "gcc -std=c11 -I/home/amrit/plumbrC/include -c src/patterns.c -o build/obj/patterns.o",
+    "file": "src/patterns.c"
+  },
+  {
+    "directory": "/home/amrit/plumbrC",
+    "command": "gcc -std=c11 -I/home/amrit/plumbrC/include -c src/redactor.c -o build/obj/redactor.o",
+    "file": "src/redactor.c"
+  },
+  {
+    "directory": "/home/amrit/plumbrC",
+    "command": "gcc -std=c11 -I/home/amrit/plumbrC/include -c src/main.c -o build/obj/main.o",
+    "file": "src/main.c"
+  },
+  {
+    "directory": "/home/amrit/plumbrC",
+    "command": "gcc -std=c11 -I/home/amrit/plumbrC/include -c tests/test_patterns.c -o build/obj/test_patterns.o",
+    "file": "tests/test_patterns.c"
+  },
+  {
+    "directory": "/home/amrit/plumbrC",
+    "command": "gcc -std=c11 -I/home/amrit/plumbrC/include -c tests/test_redactor.c -o build/obj/test_redactor.o",
+    "file": "tests/test_redactor.c"
+  },
+  {
+    "directory": "/home/amrit/plumbrC",
+    "command": "gcc -std=c11 -I/home/amrit/plumbrC/include -c tests/benchmark.c -o build/obj/benchmark.o",
+    "file": "tests/benchmark.c"
+  }
+]

@@ -1,0 +1,32 @@
+# JWT and Token Patterns
+# Format: name|literal|regex|replacement
+
+# JWT Token
+jwt_token|eyJ|eyJ[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+|[REDACTED:jwt]
+
+# Bearer Token
+bearer_token|Bearer |Bearer\\s+[A-Za-z0-9_-]+|[REDACTED:bearer]
+
+# Basic Auth Header
+basic_auth|Basic |Basic\\s+[A-Za-z0-9+/=]+|[REDACTED:basic_auth]
+
+# OAuth Access Token
+oauth_access_token|access_token|access[_-]?token[\"'\\s:=]+[A-Za-z0-9_-]+|[REDACTED:oauth_token]
+
+# OAuth Refresh Token
+oauth_refresh_token|refresh_token|refresh[_-]?token[\"'\\s:=]+[A-Za-z0-9_-]+|[REDACTED:refresh_token]
+
+# API Key Header
+api_key_header|X-API-Key|X-API-Key[\"'\\s:=]+[A-Za-z0-9_-]+|[REDACTED:api_key]
+
+# Authorization Header
+auth_header|Authorization|Authorization[\"'\\s:=]+[^\\s]+|[REDACTED:auth]
+
+# Session ID
+session_id|session_id|session[_-]?id[\"'\\s:=]+[A-Za-z0-9_-]+|[REDACTED:session]
+
+# CSRF Token
+csrf_token|csrf|csrf[_-]?token[\"'\\s:=]+[A-Za-z0-9_-]+|[REDACTED:csrf]
+
+# XSRF Token
+xsrf_token|xsrf|xsrf[_-]?token[\"'\\s:=]+[A-Za-z0-9_-]+|[REDACTED:xsrf]

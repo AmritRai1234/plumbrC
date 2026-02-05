@@ -1,0 +1,32 @@
+# AWS Credentials Patterns
+# Format: name|literal|regex|replacement
+
+# AWS Access Key ID (standard)
+aws_access_key|AKIA|AKIA[0-9A-Z]{16}|[REDACTED:aws_key]
+
+# AWS Access Key ID (temporary)
+aws_temp_key|ASIA|ASIA[0-9A-Z]{16}|[REDACTED:aws_temp_key]
+
+# AWS Secret Access Key (40 char)
+aws_secret_key||[A-Za-z0-9/+=]{40}|[REDACTED:aws_secret]
+
+# AWS Session Token
+aws_session_token|FwoGZXIvYXdz|FwoGZXIvYXdz[A-Za-z0-9/+=]+|[REDACTED:aws_session]
+
+# AWS Account ID
+aws_account_id||[0-9]{12}|[REDACTED:aws_account]
+
+# AWS ARN
+aws_arn|arn:aws|arn:aws:[a-z0-9-]+:[a-z0-9-]*:[0-9]*:[a-zA-Z0-9/_-]+|[REDACTED:aws_arn]
+
+# AWS MFA Serial
+aws_mfa|arn:aws:iam|arn:aws:iam::[0-9]{12}:mfa/[A-Za-z0-9_-]+|[REDACTED:aws_mfa]
+
+# AWS Lambda Function URL
+aws_lambda_url|lambda-url|https://[a-z0-9]+\.lambda-url\.[a-z0-9-]+\.on\.aws|[REDACTED:lambda_url]
+
+# AWS S3 Presigned URL
+aws_s3_presigned|X-Amz-Credential|X-Amz-Credential=[^&]+|[REDACTED:s3_presigned]
+
+# AWS Cognito Identity Pool ID
+aws_cognito_pool||[a-z]{2}-[a-z]+-[0-9]:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[REDACTED:cognito_pool]

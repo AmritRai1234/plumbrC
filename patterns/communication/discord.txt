@@ -1,0 +1,23 @@
+# Discord Patterns
+# Format: name|literal|regex|replacement
+
+# Discord Bot Token
+discord_bot_token||[MN][A-Za-z0-9]{23,}\\.[A-Za-z0-9-_]{6}\\.[A-Za-z0-9-_]{27}|[REDACTED:discord_bot]
+
+# Discord Webhook URL
+discord_webhook|discord.com/api/webhooks|https://discord(?:app)?\\.com/api/webhooks/[0-9]+/[A-Za-z0-9_-]+|[REDACTED:discord_webhook]
+
+# Discord Client ID
+discord_client_id|client_id|client[_-]?id[\"'\\s:=]+[0-9]{17,19}|[REDACTED:discord_client]
+
+# Discord Client Secret
+discord_client_secret|client_secret|client[_-]?secret[\"'\\s:=]+[A-Za-z0-9_-]{32}|[REDACTED:discord_secret]
+
+# Discord User ID
+discord_user_id||[0-9]{17,19}|[REDACTED:discord_user]
+
+# Discord Guild/Server ID
+discord_guild_id|guild_id|guild[_-]?id[\"'\\s:=]+[0-9]{17,19}|[REDACTED:discord_guild]
+
+# Discord Channel ID
+discord_channel_id|channel_id|channel[_-]?id[\"'\\s:=]+[0-9]{17,19}|[REDACTED:discord_channel]

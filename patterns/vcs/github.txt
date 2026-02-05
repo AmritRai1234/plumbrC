@@ -1,0 +1,32 @@
+# GitHub Patterns
+# Format: name|literal|regex|replacement
+
+# GitHub Personal Access Token (classic)
+github_pat_classic|ghp_|ghp_[A-Za-z0-9]{36}|[REDACTED:github_pat]
+
+# GitHub Personal Access Token (fine-grained)
+github_pat_fine|github_pat_|github_pat_[A-Za-z0-9]{22}_[A-Za-z0-9]{59}|[REDACTED:github_fine_pat]
+
+# GitHub OAuth Access Token
+github_oauth|gho_|gho_[A-Za-z0-9]{36}|[REDACTED:github_oauth]
+
+# GitHub App Token
+github_app|ghu_|ghu_[A-Za-z0-9]{36}|[REDACTED:github_app]
+
+# GitHub App Installation Token
+github_app_install|ghs_|ghs_[A-Za-z0-9]{36}|[REDACTED:github_install]
+
+# GitHub App Refresh Token
+github_app_refresh|ghr_|ghr_[A-Za-z0-9]{36}|[REDACTED:github_refresh]
+
+# GitHub Actions Secret
+github_actions|GITHUB_TOKEN|GITHUB_TOKEN[\"'\\s:=]+[A-Za-z0-9_]+|[REDACTED:actions_token]
+
+# GitHub Webhook Secret
+github_webhook_secret|webhook|webhook[_-]?secret[\"'\\s:=]+[A-Za-z0-9_-]+|[REDACTED:webhook_secret]
+
+# GitHub SSH Key
+github_ssh|github.com|ssh-[a-z0-9]+\\s+[A-Za-z0-9+/=]+|[REDACTED:ssh_key]
+
+# GitHub App Private Key
+github_app_key|-----BEGIN RSA PRIVATE KEY|-----BEGIN RSA PRIVATE KEY-----|[REDACTED:app_key]

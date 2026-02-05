@@ -1,0 +1,26 @@
+# PayPal Patterns
+# Format: name|literal|regex|replacement
+
+# PayPal Client ID
+paypal_client_id|client_id|client[_-]?id[\"'\\s:=]+[A-Za-z0-9_-]{80}|[REDACTED:paypal_client]
+
+# PayPal Client Secret
+paypal_client_secret|client_secret|client[_-]?secret[\"'\\s:=]+[A-Za-z0-9_-]{80}|[REDACTED:paypal_secret]
+
+# PayPal Access Token
+paypal_access_token|A21AA|A21AA[A-Za-z0-9_-]+|[REDACTED:paypal_token]
+
+# PayPal Webhook ID
+paypal_webhook_id|WH-|WH-[A-Z0-9]+-[A-Z0-9]+|[REDACTED:paypal_webhook]
+
+# PayPal Transaction ID
+paypal_transaction||[0-9A-Z]{17}|[REDACTED:paypal_txn]
+
+# Braintree Merchant ID
+braintree_merchant|merchant_id|merchant[_-]?id[\"'\\s:=]+[a-z0-9]+|[REDACTED:braintree_merchant]
+
+# Braintree Public Key
+braintree_public|public_key|public[_-]?key[\"'\\s:=]+[a-z0-9]+|[REDACTED:braintree_pub]
+
+# Braintree Private Key
+braintree_private|private_key|private[_-]?key[\"'\\s:=]+[a-f0-9]{32}|[REDACTED:braintree_private]

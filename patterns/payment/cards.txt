@@ -1,0 +1,35 @@
+# Credit Card Patterns
+# Format: name|literal|regex|replacement
+
+# Visa Card
+visa_card|4|\b4[0-9]{12}(?:[0-9]{3})?\b|[REDACTED:visa]
+
+# Mastercard
+mastercard|5|\b5[1-5][0-9]{14}\b|[REDACTED:mastercard]
+
+# American Express
+amex|3|\b3[47][0-9]{13}\b|[REDACTED:amex]
+
+# Discover Card
+discover|6|\b6011[0-9]{12}\b|[REDACTED:discover]
+
+# Diners Club
+diners|3|\b30[0-5][0-9]{11}\b|[REDACTED:diners]
+
+# JCB Card
+jcb|35|\b35[0-9]{14}\b|[REDACTED:jcb]
+
+# Generic Credit Card (with dashes/spaces)
+cc_formatted||\b[0-9]{4}[- ]?[0-9]{4}[- ]?[0-9]{4}[- ]?[0-9]{4}\b|[REDACTED:cc]
+
+# CVV/CVC Code
+cvv|cvv|cvv[\s:=]+[0-9]{3,4}|[REDACTED:cvv]
+
+# Card Expiry
+card_expiry|expir|expir[ey]?[\s:=]+[0-9]{2}/[0-9]{2,4}|[REDACTED:expiry]
+
+# Bank Account Number
+bank_account||\b[0-9]{10,17}\b|[REDACTED:bank_acct]
+
+# Bank Routing Number  
+routing_number||\b[0-9]{9}\b|[REDACTED:routing]

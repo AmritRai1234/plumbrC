@@ -1,0 +1,17 @@
+# Bitbucket Patterns
+# Format: name|literal|regex|replacement
+
+# Bitbucket App Password
+bitbucket_app_password|ATBB|ATBB[A-Za-z0-9]{32}|[REDACTED:bitbucket_app]
+
+# Bitbucket OAuth Token
+bitbucket_oauth||[A-Za-z0-9_-]{43}|[REDACTED:bitbucket_oauth]
+
+# Bitbucket Repository Access Token
+bitbucket_repo_token||[A-Za-z0-9]{50,}|[REDACTED:bitbucket_repo]
+
+# Bitbucket Webhook Secret
+bitbucket_webhook|bitbucket|webhook[_-]?secret[\"'\\s:=]+[A-Za-z0-9_-]+|[REDACTED:bitbucket_webhook]
+
+# Bitbucket Pipelines Variable
+bitbucket_pipeline_var|BITBUCKET_|BITBUCKET_[A-Z_]+[\"'\\s:=]+[^\\s]+|[REDACTED:bitbucket_var]

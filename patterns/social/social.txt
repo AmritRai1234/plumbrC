@@ -1,0 +1,65 @@
+# Social Media Patterns (Facebook, Twitter, LinkedIn, etc.)
+# Format: name|literal|regex|replacement
+
+
+# FACEBOOK
+facebook_access_token|EAA|[^\s]*EAA[^\s]*|[REDACTED:facebook]
+facebook_app_secret|facebook_app_secret|[^\s]*facebook_app_secret[^\s]*|[REDACTED:facebook]
+facebook_app_id|facebook_app_id|[^\s]*facebook_app_id[^\s]*|[REDACTED:facebook]
+facebook_client_token|facebook_client_token|[^\s]*facebook_client_token[^\s]*|[REDACTED:facebook]
+facebook_page_access_token|facebook_page_token|[^\s]*facebook_page_token[^\s]*|[REDACTED:facebook]
+facebook_user_access_token|facebook_user_token|[^\s]*facebook_user_token[^\s]*|[REDACTED:facebook]
+facebook_graph_api_token|graph.facebook.com|[^\s]*graph\.facebook\.com[^\s]*|[REDACTED:facebook]
+facebook_webhook_verify_token|fb_webhook_verify|[^\s]*fb_webhook_verify[^\s]*|[REDACTED:facebook]
+instagram_access_token|instagram_access|[^\s]*instagram_access[^\s]*|[REDACTED:facebook]
+instagram_client_id|instagram_client_id|[^\s]*instagram_client_id[^\s]*|[REDACTED:facebook]
+whatsapp_business_token|whatsapp_token|[^\s]*whatsapp_token[^\s]*|[REDACTED:facebook]
+messenger_page_token|messenger_token|[^\s]*messenger_token[^\s]*|[REDACTED:facebook]
+facebook_marketing_api|marketing_api|[^\s]*marketing_api[^\s]*|[REDACTED:facebook]
+facebook_pixel_id|fbq('init',|[^\s]*fbq\('init',[^\s]*|[REDACTED:facebook]
+meta_system_user_token|meta_system_user|[^\s]*meta_system_user[^\s]*|[REDACTED:facebook]
+
+# TWITTER
+twitter_api_key|twitter_api_key|[^\s]*twitter_api_key[^\s]*|[REDACTED:twitter]
+twitter_api_secret|twitter_api_secret|[^\s]*twitter_api_secret[^\s]*|[REDACTED:twitter]
+twitter_access_token|twitter_access_token|[^\s]*twitter_access_token[^\s]*|[REDACTED:twitter]
+twitter_access_token_secret|twitter_access_secret|[^\s]*twitter_access_secret[^\s]*|[REDACTED:twitter]
+twitter_bearer_token|twitter_bearer|[^\s]*twitter_bearer[^\s]*|[REDACTED:twitter]
+twitter_consumer_key|twitter_consumer_key|[^\s]*twitter_consumer_key[^\s]*|[REDACTED:twitter]
+twitter_consumer_secret|twitter_consumer_secret|[^\s]*twitter_consumer_secret[^\s]*|[REDACTED:twitter]
+twitter_oauth_token|twitter_oauth|[^\s]*twitter_oauth[^\s]*|[REDACTED:twitter]
+twitter_webhook_token|twitter_webhook|[^\s]*twitter_webhook[^\s]*|[REDACTED:twitter]
+x_api_key|x_api_key|[^\s]*x_api_key[^\s]*|[REDACTED:twitter]
+
+# LINKEDIN
+linkedin_client_id|linkedin_client_id|[^\s]*linkedin_client_id[^\s]*|[REDACTED:linkedin]
+linkedin_client_secret|linkedin_client_secret|[^\s]*linkedin_client_secret[^\s]*|[REDACTED:linkedin]
+linkedin_access_token|linkedin_access_token|[^\s]*linkedin_access_token[^\s]*|[REDACTED:linkedin]
+linkedin_oauth_token|linkedin_oauth|[^\s]*linkedin_oauth[^\s]*|[REDACTED:linkedin]
+linkedin_refresh_token|linkedin_refresh|[^\s]*linkedin_refresh[^\s]*|[REDACTED:linkedin]
+linkedin_api_key|linkedin_api_key|[^\s]*linkedin_api_key[^\s]*|[REDACTED:linkedin]
+linkedin_member_token|linkedin_member|[^\s]*linkedin_member[^\s]*|[REDACTED:linkedin]
+linkedin_organization_token|linkedin_org|[^\s]*linkedin_org[^\s]*|[REDACTED:linkedin]
+linkedin_webhook_secret|linkedin_webhook|[^\s]*linkedin_webhook[^\s]*|[REDACTED:linkedin]
+linkedin_marketing_api|linkedin_marketing|[^\s]*linkedin_marketing[^\s]*|[REDACTED:linkedin]
+
+# YOUTUBE
+youtube_api_key|youtube_api_key|[^\s]*youtube_api_key[^\s]*|[REDACTED:youtube]
+youtube_oauth_token|youtube_oauth|[^\s]*youtube_oauth[^\s]*|[REDACTED:youtube]
+youtube_channel_id|youtube_channel|[^\s]*youtube_channel[^\s]*|[REDACTED:youtube]
+youtube_data_api_key|googleapis.com/youtube|[^\s]*googleapis\.com/youtube[^\s]*|[REDACTED:youtube]
+youtube_analytics_token|youtubeAnalytics|[^\s]*youtubeAnalytics[^\s]*|[REDACTED:youtube]
+
+# TIKTOK
+tiktok_access_token|tiktok_access_token|[^\s]*tiktok_access_token[^\s]*|[REDACTED:tiktok]
+tiktok_client_key|tiktok_client_key|[^\s]*tiktok_client_key[^\s]*|[REDACTED:tiktok]
+tiktok_client_secret|tiktok_client_secret|[^\s]*tiktok_client_secret[^\s]*|[REDACTED:tiktok]
+tiktok_app_id|tiktok_app_id|[^\s]*tiktok_app_id[^\s]*|[REDACTED:tiktok]
+tiktok_webhook_secret|tiktok_webhook|[^\s]*tiktok_webhook[^\s]*|[REDACTED:tiktok]
+
+# REDDIT
+reddit_client_id|reddit_client_id|[^\s]*reddit_client_id[^\s]*|[REDACTED:reddit]
+reddit_client_secret|reddit_client_secret|[^\s]*reddit_client_secret[^\s]*|[REDACTED:reddit]
+reddit_access_token|reddit_access_token|[^\s]*reddit_access_token[^\s]*|[REDACTED:reddit]
+reddit_refresh_token|reddit_refresh_token|[^\s]*reddit_refresh_token[^\s]*|[REDACTED:reddit]
+reddit_password|reddit_password|[^\s]*reddit_password[^\s]*|[REDACTED:reddit]
