@@ -82,6 +82,11 @@ char *libplumbr_redact(libplumbr_t *p, const char *input, size_t input_len,
   if (!p || !input)
     return NULL;
 
+  /* SECURITY: Validate input length */
+  if (input_len > PLUMBR_MAX_LINE_SIZE) {
+    return NULL; /* Input too large */
+  }
+
   size_t out_len;
   const char *result =
       redactor_process(p->redactor, input, input_len, &out_len);

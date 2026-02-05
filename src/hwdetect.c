@@ -272,10 +272,8 @@ static void detect_memory(MemoryInfo *mem) {
   mem->speed_mhz = 3200;     /* Common DDR4 speed */
   mem->channels = 2;         /* Dual channel typical */
 
-  /* Try dmidecode if available (requires root, so this is best-effort) */
-  f = popen(
-      "cat /sys/devices/system/edac/mc/mc0/dimm0/dimm_mem_type 2>/dev/null",
-      "r");
+  /* SECURITY: Use fopen instead of popen to avoid command injection surface */
+  f = fopen("/sys/devices/system/edac/mc/mc0/dimm0/dimm_mem_type", "r");
   if (f) {
     char buf[64] = {0};
     if (fgets(buf, sizeof(buf), f)) {
@@ -289,7 +287,7 @@ static void detect_memory(MemoryInfo *mem) {
         mem->speed_mhz = 1600;
       }
     }
-    pclose(f);
+    fclose(f);
   }
 
   /* Calculate theoretical bandwidth:

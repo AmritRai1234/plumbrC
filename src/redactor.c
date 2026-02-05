@@ -53,6 +53,14 @@ Redactor *redactor_create(Arena *arena, PatternSet *patterns,
     }
   }
 
+  /* SECURITY: Create match context with limits to prevent ReDoS attacks */
+  r->match_ctx = pcre2_match_context_create(NULL);
+  if (r->match_ctx) {
+    /* Limit match attempts to prevent catastrophic backtracking */
+    pcre2_set_match_limit(r->match_ctx, 100000);
+    pcre2_set_depth_limit(r->match_ctx, 1000);
+  }
+
   r->lines_scanned = 0;
   r->lines_modified = 0;
   r->patterns_matched = 0;
@@ -124,8 +132,9 @@ const char *redactor_process(Redactor *r, const char *line, size_t len,
       search_start = 0;
     }
 
+    /* SECURITY: Use match context with limits */
     int rc = pcre2_match(pat->regex, (PCRE2_SPTR)line, len, search_start, 0, md,
-                         NULL);
+                         r->match_ctx);
 
     if (rc > 0) {
       PCRE2_SIZE *ovector = pcre2_get_ovector_pointer(md);

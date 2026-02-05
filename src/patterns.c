@@ -130,10 +130,13 @@ bool patterns_load_file(PatternSet *ps, const char *filename) {
     char *replacement = strtok(NULL, "|");
 
     if (!name || !regex) {
+      /* SECURITY: Only show basename to avoid path disclosure */
+      const char *base = strrchr(filename, '/');
+      base = base ? base + 1 : filename;
       fprintf(
           stderr,
           "%s:%d: Invalid format (expected name|literal|regex|replacement)\n",
-          filename, line_num);
+          base, line_num);
       continue;
     }
 
@@ -142,7 +145,9 @@ bool patterns_load_file(PatternSet *ps, const char *filename) {
       name++;
 
     if (!patterns_add(ps, name, literal, regex, replacement)) {
-      fprintf(stderr, "%s:%d: Failed to add pattern '%s'\n", filename, line_num,
+      const char *base = strrchr(filename, '/');
+      base = base ? base + 1 : filename;
+      fprintf(stderr, "%s:%d: Failed to add pattern '%s'\n", base, line_num,
               name);
     }
   }

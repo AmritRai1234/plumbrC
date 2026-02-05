@@ -26,6 +26,9 @@ typedef struct {
   pcre2_match_data **match_data;
   size_t num_patterns;
 
+  /* SECURITY: Match context with limits for ReDoS protection */
+  pcre2_match_context *match_ctx;
+
   /* Stats */
   size_t lines_scanned;
   size_t lines_modified;
