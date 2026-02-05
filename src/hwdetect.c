@@ -3,6 +3,8 @@
  * Auto-detect CPU/GPU capabilities using CPUID and system info
  */
 
+/* Note: _GNU_SOURCE is defined in Makefile for popen, pclose, clock_gettime */
+
 #include "hwdetect.h"
 
 #include <stdio.h>

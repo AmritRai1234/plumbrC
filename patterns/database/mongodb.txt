@@ -1,0 +1,26 @@
+# MongoDB Connection Patterns
+# Format: name|literal|regex|replacement
+
+# Connection Strings
+mongodb_uri|mongodb://|mongodb://[^:]+:[^@]+@[^\s]+|[REDACTED:mongodb_uri]
+mongodb_srv|mongodb+srv://|mongodb\+srv://[^:]+:[^@]+@[^\s]+|[REDACTED:mongodb_srv]
+mongodb_atlas|mongodb.net|[^\s]*\.mongodb\.net[^\s]*|[REDACTED:mongodb_atlas]
+
+# Environment Variables
+mongo_initdb_password|MONGO_INITDB_ROOT_PASSWORD|MONGO_INITDB_ROOT_PASSWORD[\s=:]+[^\s]+|[REDACTED:mongo_password]
+mongodb_uri_env|MONGODB_URI|MONGODB_URI[\s=:]+[^\s]+|[REDACTED:mongodb_uri]
+
+# Auth Mechanisms
+mongodb_x509|MONGODB-X509|authMechanism=MONGODB-X509[^\s]*|[REDACTED:mongodb_x509]
+mongodb_aws|MONGODB-AWS|authMechanism=MONGODB-AWS[^\s]*|[REDACTED:mongodb_aws]
+mongodb_scram|SCRAM-SHA|authMechanism=SCRAM-SHA[^\s]*|[REDACTED:mongodb_auth]
+
+# Replica Set
+mongodb_replica|replicaSet=|replicaSet=[^\s&]+|[REDACTED:mongodb_replica]
+
+# TLS/SSL
+mongodb_tls|tls=true|tls(?:CAFile|CertificateKeyFile)=[^\s]+|[REDACTED:mongodb_tls]
+mongodb_ssl|ssl=true|ssl(?:CAFile|PEMKeyFile)=[^\s]+|[REDACTED:mongodb_ssl]
+
+# Key Files
+mongodb_keyfile|keyFile|keyFile=[^\s]+|[REDACTED:mongodb_keyfile]

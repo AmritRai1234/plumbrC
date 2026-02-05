@@ -1,0 +1,18 @@
+# InfluxDB/TimescaleDB Time-Series Database Patterns
+# Format: name|literal|regex|replacement
+
+# InfluxDB
+influxdb_token|INFLUX_TOKEN|INFLUX_TOKEN[\s=:]+[^\s]+|[REDACTED:influxdb_token]
+influxdb_url|INFLUX_URL|INFLUX_URL[\s=:]+[^\s]+|[REDACTED:influxdb_url]
+influxdb_auth_token|Authorization: Token|Authorization:\s*Token\s+[^\s]+|[REDACTED:influxdb_auth]
+influxdb_v1_auth|influxdb|[^\s]*influxdb://[^:]+:[^@]+@[^\s]*|[REDACTED:influxdb_uri]
+
+# TimescaleDB (PostgreSQL compatible)
+timescaledb_uri|timescaledb|timescaledb://[^:]+:[^@]+@[^\s]+|[REDACTED:timescaledb_uri]
+
+# Prometheus Remote Write
+prometheus_remote|remote_write|remote_write[^\n]*password[^\n]+|[REDACTED:prometheus_remote]
+prometheus_bearer|bearer_token|bearer_token[\s=:]+[^\s]+|[REDACTED:prometheus_bearer]
+
+# Grafana Cloud
+grafana_api_key|grafana|grafana[^\s]*api[^\s]*key[^\s]*[\s=:]+[^\s]+|[REDACTED:grafana_api]

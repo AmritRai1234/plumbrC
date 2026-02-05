@@ -1,0 +1,23 @@
+# Redis Connection Patterns
+# Format: name|literal|regex|replacement
+
+# Connection Strings
+redis_uri|redis://|redis://[^:]*:[^@]+@[^\s]+|[REDACTED:redis_uri]
+rediss_uri|rediss://|rediss://[^:]*:[^@]+@[^\s]+|[REDACTED:redis_tls_uri]
+
+# Environment Variables
+redis_password|REDIS_PASSWORD|REDIS_PASSWORD[\s=:]+[^\s]+|[REDACTED:redis_password]
+redis_url|REDIS_URL|REDIS_URL[\s=:]+[^\s]+|[REDACTED:redis_url]
+
+# Auth Commands in Logs
+redis_auth_cmd|AUTH|AUTH\s+[^\s]+|[REDACTED:redis_auth]
+redis_config_set|CONFIG SET|CONFIG\s+SET\s+requirepass\s+[^\s]+|[REDACTED:redis_config]
+
+# Cluster
+redis_cluster_auth|redis-cli|redis-cli[^\n]*-a\s+[^\s]+|[REDACTED:redis_cli]
+
+# Sentinel
+redis_sentinel_auth|sentinel auth|sentinel\s+auth-pass\s+[^\s]+\s+[^\s]+|[REDACTED:redis_sentinel]
+
+# ACL
+redis_acl_password|user|ACL\s+SETUSER[^\n]*>[^\s]+|[REDACTED:redis_acl]

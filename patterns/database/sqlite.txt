@@ -1,0 +1,14 @@
+# SQLite Connection Patterns
+# Format: name|literal|regex|replacement
+
+# Connection Strings
+sqlite_uri|sqlite://|sqlite(?:3)?://[^\s]+|[REDACTED:sqlite_uri]
+sqlite_file|.sqlite|[^\s]+\.(?:sqlite|sqlite3|db)[^\s]*|[REDACTED:sqlite_file]
+sqlite_memory|:memory:|:memory:|[REDACTED:sqlite_memory]
+
+# Encryption (SQLCipher)
+sqlcipher_key|PRAGMA key|PRAGMA\s+key\s*=\s*[^\s;]+|[REDACTED:sqlcipher_key]
+sqlcipher_rekey|PRAGMA rekey|PRAGMA\s+rekey\s*=\s*[^\s;]+|[REDACTED:sqlcipher_rekey]
+
+# Attached Databases
+sqlite_attach|ATTACH|ATTACH\s+DATABASE[^\n]*KEY[^\n]+|[REDACTED:sqlite_attach]

@@ -1,0 +1,24 @@
+# PostgreSQL Connection Patterns
+# Format: name|literal|regex|replacement
+
+# Connection Strings
+postgres_uri|postgres://|postgres(?:ql)?://[^:]+:[^@]+@[^\s]+|[REDACTED:postgres_uri]
+postgres_jdbc|jdbc:postgresql|jdbc:postgresql://[^\s]+|[REDACTED:postgres_jdbc]
+postgres_odbc|Driver={PostgreSQL|Driver=\{PostgreSQL[^\}]+\}[^\s]*|[REDACTED:postgres_odbc]
+
+# Environment Variables
+pgpassword|PGPASSWORD|PGPASSWORD[\s=:]+[^\s]+|[REDACTED:pg_password]
+pg_connection|PG_CONNECTION|PG_CONNECTION[\s=:]+[^\s]+|[REDACTED:pg_connection]
+
+# Config File References
+pgpass_file|.pgpass|\.pgpass[^\s]*|[REDACTED:pgpass_file]
+pg_service|pg_service.conf|pg_service\.conf|[REDACTED:pg_service]
+pg_hba|pg_hba.conf|pg_hba\.conf|[REDACTED:pg_hba]
+
+# Replication
+pg_replication|wal_level|password=[^\s]+|[REDACTED:pg_replication]
+
+# SSL/TLS
+pg_sslkey|sslkey=|sslkey=[^\s]+|[REDACTED:pg_ssl]
+pg_sslcert|sslcert=|sslcert=[^\s]+|[REDACTED:pg_ssl]
+pg_sslrootcert|sslrootcert=|sslrootcert=[^\s]+|[REDACTED:pg_ssl]

@@ -1,0 +1,25 @@
+# MySQL/MariaDB Connection Patterns
+# Format: name|literal|regex|replacement
+
+# Connection Strings
+mysql_uri|mysql://|mysql://[^:]+:[^@]+@[^\s]+|[REDACTED:mysql_uri]
+mariadb_uri|mariadb://|mariadb://[^:]+:[^@]+@[^\s]+|[REDACTED:mariadb_uri]
+mysql_jdbc|jdbc:mysql|jdbc:mysql://[^\s]+|[REDACTED:mysql_jdbc]
+mysql_odbc|Driver={MySQL|Driver=\{MySQL[^\}]+\}[^\s]*|[REDACTED:mysql_odbc]
+
+# Environment Variables
+mysql_password|MYSQL_PASSWORD|MYSQL_PASSWORD[\s=:]+[^\s]+|[REDACTED:mysql_password]
+mysql_root_password|MYSQL_ROOT_PASSWORD|MYSQL_ROOT_PASSWORD[\s=:]+[^\s]+|[REDACTED:mysql_root_password]
+mysql_pwd|MYSQL_PWD|MYSQL_PWD[\s=:]+[^\s]+|[REDACTED:mysql_pwd]
+
+# Config Files
+my_cnf|my.cnf|password\s*=\s*[^\s]+|[REDACTED:mysql_config]
+mysql_defaults|.my.cnf|\.my\.cnf|[REDACTED:mysql_defaults]
+
+# SSL/TLS
+mysql_ssl_key|ssl-key|ssl-key=[^\s]+|[REDACTED:mysql_ssl]
+mysql_ssl_cert|ssl-cert|ssl-cert=[^\s]+|[REDACTED:mysql_ssl]
+mysql_ssl_ca|ssl-ca|ssl-ca=[^\s]+|[REDACTED:mysql_ssl]
+
+# Replication
+mysql_repl_password|MASTER_PASSWORD|MASTER_PASSWORD[\s=:'"]+[^\s'"]+|[REDACTED:mysql_repl]

@@ -1,0 +1,17 @@
+# CockroachDB Connection Patterns
+# Format: name|literal|regex|replacement
+
+# Connection Strings
+cockroachdb_uri|cockroachdb://|cockroachdb://[^:]+:[^@]+@[^\s]+|[REDACTED:cockroachdb_uri]
+cockroach_postgres|cockroachlabs|[^\s]*cockroachlabs\.cloud[^\s]*|[REDACTED:cockroach_cloud]
+
+# Serverless
+cockroach_serverless|.cockroachlabs.cloud|[^\s]+\.cockroachlabs\.cloud[^\s]*|[REDACTED:cockroach_serverless]
+
+# Environment Variables  
+cockroach_password|COCKROACH_PASSWORD|COCKROACH_PASSWORD[\s=:]+[^\s]+|[REDACTED:cockroach_password]
+cockroach_url|DATABASE_URL|DATABASE_URL[\s=:]+[^\s]*cockroach[^\s]*|[REDACTED:cockroach_url]
+
+# Certs
+cockroach_certs|certs-dir|certs-dir=[^\s]+|[REDACTED:cockroach_certs]
+cockroach_ca|ca.crt|ca\.crt|[REDACTED:cockroach_ca]

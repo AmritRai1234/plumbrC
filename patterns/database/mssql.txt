@@ -1,0 +1,24 @@
+# Microsoft SQL Server Connection Patterns
+# Format: name|literal|regex|replacement
+
+# Connection Strings
+mssql_jdbc|jdbc:sqlserver|jdbc:sqlserver://[^\s]+|[REDACTED:mssql_jdbc]
+mssql_odbc|Driver={SQL Server|Driver=\{(?:SQL Server|ODBC Driver)[^\}]+\}[^\s]*|[REDACTED:mssql_odbc]
+mssql_ado|Server=|Server=[^;]+;[^\n]*Password=[^;]+|[REDACTED:mssql_connection]
+
+# Environment Variables
+mssql_sa_password|MSSQL_SA_PASSWORD|MSSQL_SA_PASSWORD[\s=:]+[^\s]+|[REDACTED:mssql_sa_password]
+sa_password|SA_PASSWORD|SA_PASSWORD[\s=:]+[^\s]+|[REDACTED:mssql_sa_password]
+
+# Connection String Parameters
+mssql_pwd|Pwd=|Pwd=[^;]+|[REDACTED:mssql_pwd]
+mssql_password|Password=|Password=[^;]+|[REDACTED:mssql_password]
+mssql_trusted|Trusted_Connection|Trusted_Connection=[^;]+|[REDACTED:mssql_trusted]
+
+# Azure SQL
+azure_sql_token|Authentication=|Authentication=ActiveDirectoryPassword[^\s]*|[REDACTED:azure_sql_auth]
+azure_sql_mi|\.database\.windows\.net|[^\s]+\.database\.windows\.net[^\s]*|[REDACTED:azure_sql]
+
+# SQL Auth
+sql_login|CREATE LOGIN|CREATE\s+LOGIN[^\n]*PASSWORD[^\n]+|[REDACTED:sql_login]
+sql_alter_login|ALTER LOGIN|ALTER\s+LOGIN[^\n]*PASSWORD[^\n]+|[REDACTED:sql_login]

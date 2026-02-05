@@ -1,0 +1,25 @@
+# Elasticsearch/OpenSearch Connection Patterns
+# Format: name|literal|regex|replacement
+
+# Connection Strings
+elasticsearch_uri|elasticsearch|https?://[^:]+:[^@]+@[^\s]*elastic[^\s]*|[REDACTED:elasticsearch_uri]
+opensearch_uri|opensearch|https?://[^:]+:[^@]+@[^\s]*opensearch[^\s]*|[REDACTED:opensearch_uri]
+
+# Environment Variables
+elastic_password|ELASTIC_PASSWORD|ELASTIC_PASSWORD[\s=:]+[^\s]+|[REDACTED:elastic_password]
+es_password|ELASTICSEARCH_PASSWORD|ELASTICSEARCH_PASSWORD[\s=:]+[^\s]+|[REDACTED:es_password]
+
+# API Keys
+elasticsearch_api_key|ApiKey|ApiKey\s+[A-Za-z0-9_=-]+|[REDACTED:es_api_key]
+es_encoded_api_key|Authorization: ApiKey|Authorization:\s*ApiKey\s+[^\s]+|[REDACTED:es_api_key]
+
+# Service Tokens
+es_service_token|service_tokens|service_tokens[^\n]*:[^\n]+|[REDACTED:es_service_token]
+
+# TLS/SSL
+es_keystore|elasticsearch.keystore|elasticsearch\.keystore|[REDACTED:es_keystore]
+es_truststore|truststore|truststore\.path=[^\s]+|[REDACTED:es_truststore]
+
+# Cloud
+elastic_cloud_id|cloud.id|cloud\.id[\s=:]+[^\s]+|[REDACTED:elastic_cloud]
+elastic_cloud_auth|cloud.auth|cloud\.auth[\s=:]+[^\s]+|[REDACTED:elastic_cloud_auth]

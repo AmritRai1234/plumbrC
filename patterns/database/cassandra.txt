@@ -1,0 +1,24 @@
+# Apache Cassandra/ScyllaDB Connection Patterns
+# Format: name|literal|regex|replacement
+
+# Connection Strings
+cassandra_contact_points|cassandra|contact-points=[^\s]+|[REDACTED:cassandra_contact]
+scylladb_uri|scylla|scylla[^\s]*://[^:]+:[^@]+@[^\s]+|[REDACTED:scylla_uri]
+
+# Environment Variables
+cassandra_password|CASSANDRA_PASSWORD|CASSANDRA_PASSWORD[\s=:]+[^\s]+|[REDACTED:cassandra_password]
+cassandra_username|CASSANDRA_USERNAME|CASSANDRA_USERNAME[\s=:]+[^\s]+|[REDACTED:cassandra_username]
+
+# CQL Auth
+cql_login|LOGIN|LOGIN\s+[^\s]+\s+[^\s]+|[REDACTED:cql_auth]
+cql_create_role|CREATE ROLE|CREATE\s+ROLE[^\n]*PASSWORD[^\n]+|[REDACTED:cql_role]
+cql_alter_role|ALTER ROLE|ALTER\s+ROLE[^\n]*PASSWORD[^\n]+|[REDACTED:cql_role]
+
+# DataStax Astra
+astra_token|AstraCS|AstraCS:[^\s]+|[REDACTED:astra_token]
+astra_client_id|clientId|clientId[\s=:]+[^\s]+|[REDACTED:astra_client]
+astra_client_secret|clientSecret|clientSecret[\s=:]+[^\s]+|[REDACTED:astra_secret]
+
+# SSL/TLS
+cassandra_keystore|keystore|keystore_password[\s=:]+[^\s]+|[REDACTED:cassandra_keystore]
+cassandra_truststore|truststore|truststore_password[\s=:]+[^\s]+|[REDACTED:cassandra_truststore]

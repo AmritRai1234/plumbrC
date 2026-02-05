@@ -1,0 +1,22 @@
+# Oracle Database Connection Patterns
+# Format: name|literal|regex|replacement
+
+# Connection Strings
+oracle_jdbc|jdbc:oracle|jdbc:oracle:thin:@[^\s]+|[REDACTED:oracle_jdbc]
+oracle_tns|TNS_ADMIN|TNS_ADMIN[\s=:]+[^\s]+|[REDACTED:oracle_tns]
+oracle_easy_connect|oracle|[^\s]+/[^@\s]+@[^\s]+:[0-9]+/[^\s]+|[REDACTED:oracle_connect]
+
+# Environment Variables
+oracle_password|ORACLE_PASSWORD|ORACLE_PASSWORD[\s=:]+[^\s]+|[REDACTED:oracle_password]
+oracle_pwd|ORACLE_PWD|ORACLE_PWD[\s=:]+[^\s]+|[REDACTED:oracle_pwd]
+
+# SQL*Plus
+sqlplus_connect|sqlplus|sqlplus\s+[^\s/]+/[^\s@]+@[^\s]+|[REDACTED:sqlplus]
+
+# Wallet
+oracle_wallet|wallet_location|wallet_location[\s=:]+[^\s]+|[REDACTED:oracle_wallet]
+oracle_tde|TDE_CONFIGURATION|TDE_CONFIGURATION[^\n]+|[REDACTED:oracle_tde]
+
+# Admin
+oracle_sysdba|sysdba|as\s+sysdba[^\n]*|[REDACTED:oracle_admin]
+oracle_sysoper|sysoper|as\s+sysoper[^\n]*|[REDACTED:oracle_admin]
