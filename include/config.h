@@ -11,7 +11,8 @@
 /* Buffer sizes (L2 cache friendly) */
 #define PLUMBR_READ_BUFFER_SIZE (64 * 1024)  /* 64KB */
 #define PLUMBR_WRITE_BUFFER_SIZE (64 * 1024) /* 64KB */
-#define PLUMBR_MAX_LINE_SIZE (256 * 1024)    /* 256KB max line */
+#define PLUMBR_MAX_LINE_SIZE                                                   \
+  (64 * 1024) /* 64KB max line (reduced for security) */
 
 /* Arena allocator */
 #define PLUMBR_ARENA_SIZE (128 * 1024 * 1024) /* 128MB main arena */
@@ -22,6 +23,7 @@
 #define PLUMBR_MAX_PATTERN_NAME 64
 #define PLUMBR_MAX_LITERAL_LEN 256
 #define PLUMBR_MAX_REPLACEMENT_LEN 128
+#define PLUMBR_MAX_MATCHES_PER_LINE 64 /* Reduced for stack safety */
 
 /* Aho-Corasick */
 #define AC_ALPHABET_SIZE 256
@@ -29,6 +31,8 @@
 
 /* I/O */
 #define PLUMBR_IOV_BATCH 64 /* writev batch size */
+#define PLUMBR_MAX_FILE_SIZE (10ULL * 1024 * 1024 * 1024) /* 10GB rate limit   \
+                                                           */
 
 /* Performance hints */
 #define PLUMBR_LIKELY(x) __builtin_expect(!!(x), 1)

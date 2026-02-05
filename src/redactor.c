@@ -12,8 +12,8 @@
 
 #include <string.h>
 
-/* Max matches per line */
-#define MAX_MATCHES_PER_LINE 256
+/* Max matches per line - use config constant for stack safety */
+#define MAX_MATCHES_PER_LINE PLUMBR_MAX_MATCHES_PER_LINE
 
 /* Match location for sorting/merging */
 typedef struct {

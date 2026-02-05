@@ -98,6 +98,13 @@ bool patterns_add(PatternSet *ps, const char *name, const char *literal,
 }
 
 bool patterns_load_file(PatternSet *ps, const char *filename) {
+  /* SECURITY: Basic path traversal prevention */
+  if (strstr(filename, "..") != NULL) {
+    fprintf(stderr,
+            "Pattern file path contains '..' - rejected for security\n");
+    return false;
+  }
+
   FILE *f = fopen(filename, "r");
   if (!f) {
     return false;
