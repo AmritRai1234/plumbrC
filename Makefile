@@ -15,14 +15,17 @@ BIN_DIR = $(BUILD_DIR)/bin
 # Output
 TARGET = plumbr
 LIBRARY = libplumbr.a
+SHARED_LIB = libplumbr.so
+SHARED_LIB_VERSION = 1.0.0
 
-# Sources
+# Sources (exclude main.c for library builds)
 SRCS = $(wildcard $(SRC_DIR)/*.c)
 AMD_SRCS = $(wildcard $(SRC_DIR)/amd/*.c)
 OBJS = $(patsubst $(SRC_DIR)/%.c,$(OBJ_DIR)/%.o,$(SRCS))
 AMD_OBJS = $(patsubst $(SRC_DIR)/amd/%.c,$(OBJ_DIR)/amd_%.o,$(AMD_SRCS))
 ALL_OBJS = $(OBJS) $(AMD_OBJS)
 LIB_OBJS = $(filter-out $(OBJ_DIR)/main.o,$(ALL_OBJS))
+SHARED_OBJS = $(patsubst $(OBJ_DIR)/%.o,$(OBJ_DIR)/%.pic.o,$(LIB_OBJS))
 
 # Compiler flags
 CFLAGS = -std=c11 -I$(INC_DIR) -I$(SRC_DIR)/amd -D_GNU_SOURCE
@@ -78,12 +81,38 @@ $(BIN_DIR)/$(TARGET): $(ALL_OBJS) | $(BIN_DIR)
 	$(CC) $(ALL_OBJS) -o $@ $(LDFLAGS)
 	@echo "Built: $@"
 
-# Build library
+# Build static library
 lib: $(LIB_DIR)/$(LIBRARY)
 
 $(LIB_DIR)/$(LIBRARY): $(LIB_OBJS) | $(LIB_DIR)
 	$(AR) rcs $@ $(LIB_OBJS)
 	@echo "Built: $@"
+
+# Build shared library (needs PIC objects)
+PIC_OBJ_DIR = $(BUILD_DIR)/pic
+PIC_SRCS = $(filter-out $(SRC_DIR)/main.c,$(SRCS))
+PIC_OBJS = $(patsubst $(SRC_DIR)/%.c,$(PIC_OBJ_DIR)/%.o,$(PIC_SRCS))
+PIC_AMD_OBJS = $(patsubst $(SRC_DIR)/amd/%.c,$(PIC_OBJ_DIR)/amd_%.o,$(AMD_SRCS))
+ALL_PIC_OBJS = $(PIC_OBJS) $(PIC_AMD_OBJS)
+
+shared: $(LIB_DIR)/$(SHARED_LIB)
+
+$(LIB_DIR)/$(SHARED_LIB): $(ALL_PIC_OBJS) | $(LIB_DIR)
+	$(CC) -shared -Wl,-soname,$(SHARED_LIB).1 -o $@ $(ALL_PIC_OBJS) $(LDFLAGS)
+	@echo "Built: $@"
+
+# Compile PIC objects for shared library
+$(PIC_OBJ_DIR)/%.o: $(SRC_DIR)/%.c | $(PIC_OBJ_DIR)
+	$(CC) $(CFLAGS) -fPIC -c $< -o $@
+
+$(PIC_OBJ_DIR)/amd_%.o: $(SRC_DIR)/amd/%.c | $(PIC_OBJ_DIR)
+	$(CC) $(CFLAGS) -fPIC -mavx2 -c $< -o $@
+
+$(PIC_OBJ_DIR):
+	mkdir -p $@
+
+# Build both libraries
+libs: lib shared
 
 # Compile source files
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c | $(OBJ_DIR)

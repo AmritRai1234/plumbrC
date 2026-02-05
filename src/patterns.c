@@ -6,6 +6,7 @@
 #include "config.h"
 
 #include <ctype.h>
+#include <dirent.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -148,6 +149,41 @@ bool patterns_load_file(PatternSet *ps, const char *filename) {
 
   fclose(f);
   return ps->count > 0;
+}
+
+/* Load all pattern files from a directory */
+int patterns_load_directory(PatternSet *ps, const char *dirname) {
+  DIR *dir = opendir(dirname);
+  if (!dir) {
+    return 0;
+  }
+
+  int loaded = 0;
+  struct dirent *entry;
+  char filepath[4096];
+
+  while ((entry = readdir(dir)) != NULL) {
+    /* Skip hidden files and directories */
+    if (entry->d_name[0] == '.') {
+      continue;
+    }
+
+    /* Only load .txt files */
+    size_t len = strlen(entry->d_name);
+    if (len < 4 || strcmp(entry->d_name + len - 4, ".txt") != 0) {
+      continue;
+    }
+
+    snprintf(filepath, sizeof(filepath), "%s/%s", dirname, entry->d_name);
+
+    size_t before = ps->count;
+    if (patterns_load_file(ps, filepath)) {
+      loaded += (int)(ps->count - before);
+    }
+  }
+
+  closedir(dir);
+  return loaded;
 }
 
 bool patterns_build(PatternSet *ps) {

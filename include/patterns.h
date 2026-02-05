@@ -52,6 +52,9 @@ bool patterns_add(PatternSet *ps, const char *name,
  * name|literal|regex|replacement) */
 bool patterns_load_file(PatternSet *ps, const char *filename);
 
+/* Load all pattern files from a directory */
+int patterns_load_directory(PatternSet *ps, const char *dirname);
+
 /* Build AC automaton (call after all patterns added) */
 bool patterns_build(PatternSet *ps);
 
