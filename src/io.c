@@ -74,10 +74,10 @@ const char *io_read_line(IOContext *ctx, size_t *out_len) {
 
       if (nl != NULL) {
         size_t chunk_len = nl - start;
-        size_t total_len = ctx->line_carry_len + chunk_len;
 
-        /* Check overflow */
-        if (PLUMBR_UNLIKELY(total_len >= PLUMBR_MAX_LINE_SIZE)) {
+        /* SECURITY: Explicit bounds check to prevent overflow */
+        size_t max_chunk = PLUMBR_MAX_LINE_SIZE - ctx->line_carry_len - 1;
+        if (chunk_len > max_chunk) {
           /* Line too long, skip to newline */
           ctx->read_pos = (nl - ctx->read_buf) + 1;
           ctx->line_carry_len = 0;
@@ -85,7 +85,9 @@ const char *io_read_line(IOContext *ctx, size_t *out_len) {
           return io_read_line(ctx, out_len);
         }
 
-        /* Append to carry buffer */
+        size_t total_len = ctx->line_carry_len + chunk_len;
+
+        /* Append to carry buffer - bounds already verified above */
         memcpy(ctx->line_carry + ctx->line_carry_len, start, chunk_len);
         ctx->line_carry_len = total_len;
         ctx->line_carry[total_len] = '\0';
@@ -100,16 +102,21 @@ const char *io_read_line(IOContext *ctx, size_t *out_len) {
       }
 
       /* No newline - append all to carry */
-      if (PLUMBR_UNLIKELY(ctx->line_carry_len + avail >=
-                          PLUMBR_MAX_LINE_SIZE)) {
-        /* Line too long, truncate */
-        ctx->line_carry_len = 0;
-        ctx->read_pos = ctx->read_len;
-        continue;
+      /* SECURITY: Calculate safe copy size to prevent overflow */
+      size_t safe_avail = avail;
+      size_t remaining_space = PLUMBR_MAX_LINE_SIZE - ctx->line_carry_len - 1;
+      if (safe_avail > remaining_space) {
+        /* Line too long, truncate to max size */
+        safe_avail = remaining_space;
+        if (safe_avail == 0) {
+          ctx->line_carry_len = 0;
+          ctx->read_pos = ctx->read_len;
+          continue;
+        }
       }
 
-      memcpy(ctx->line_carry + ctx->line_carry_len, start, avail);
-      ctx->line_carry_len += avail;
+      memcpy(ctx->line_carry + ctx->line_carry_len, start, safe_avail);
+      ctx->line_carry_len += safe_avail;
       ctx->read_pos = ctx->read_len;
     }
 

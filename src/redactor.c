@@ -111,12 +111,18 @@ const char *redactor_process(Redactor *r, const char *line, size_t len,
     pcre2_match_data *md = r->match_data[ac->pattern_id];
 
     /* Try to match near the AC hit position */
-    size_t search_start =
-        (ac->position >= ac->length) ? (ac->position - ac->length) : 0;
+    /* SECURITY: Safe arithmetic to prevent underflow */
+    size_t search_start = 0;
+    if (ac->position >= ac->length) {
+      search_start = ac->position - ac->length;
+    }
 
-    /* Allow some slack for regex context */
-    if (search_start > 10)
+    /* Allow some slack for regex context (safely) */
+    if (search_start >= 10) {
       search_start -= 10;
+    } else {
+      search_start = 0;
+    }
 
     int rc = pcre2_match(pat->regex, (PCRE2_SPTR)line, len, search_start, 0, md,
                          NULL);

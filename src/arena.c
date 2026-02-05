@@ -35,10 +35,16 @@ void arena_init_with_buffer(Arena *arena, void *buffer, size_t size) {
 }
 
 void *arena_alloc(Arena *arena, size_t size) {
+  /* SECURITY: Check for overflow when aligning */
+  if (PLUMBR_UNLIKELY(size > SIZE_MAX - 7)) {
+    return NULL;
+  }
+
   /* Align to 8 bytes for safety */
   size_t aligned_size = (size + 7) & ~7UL;
 
-  if (PLUMBR_UNLIKELY(arena->used + aligned_size > arena->size)) {
+  /* SECURITY: Check for overflow in used + aligned_size */
+  if (PLUMBR_UNLIKELY(aligned_size > arena->size - arena->used)) {
     return NULL;
   }
 
@@ -53,15 +59,24 @@ void *arena_alloc(Arena *arena, size_t size) {
 }
 
 void *arena_alloc_aligned(Arena *arena, size_t size, size_t alignment) {
-  /* Ensure alignment is power of 2 */
+  /* SECURITY: Validate alignment is power of 2 and non-zero */
+  if (alignment == 0 || (alignment & (alignment - 1)) != 0) {
+    return NULL;
+  }
+
   size_t mask = alignment - 1;
   size_t current = (size_t)(arena->base + arena->used);
   size_t aligned = (current + mask) & ~mask;
   size_t padding = aligned - current;
 
+  /* SECURITY: Check for overflow in padding + size */
+  if (PLUMBR_UNLIKELY(padding > SIZE_MAX - size)) {
+    return NULL;
+  }
   size_t total = padding + size;
 
-  if (PLUMBR_UNLIKELY(arena->used + total > arena->size)) {
+  /* SECURITY: Check for overflow in used + total */
+  if (PLUMBR_UNLIKELY(total > arena->size - arena->used)) {
     return NULL;
   }
 

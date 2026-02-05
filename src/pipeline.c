@@ -12,6 +12,7 @@
 #include "redactor.h"
 #include "thread_pool.h"
 
+#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -349,14 +350,20 @@ int plumbr_process_fd(PlumbrContext *ctx, int in_fd, int out_fd) {
 
   /* Auto-detect optimal thread count if 0 */
   if (num_threads == 0) {
-    /* Use hardware detection for optimal tuning */
+    /* SECURITY: Thread-safe hardware detection with double-checked locking */
     static HardwareInfo hw_info = {0};
-    static int hw_initialized = 0;
+    static volatile int hw_initialized = 0;
+    static pthread_mutex_t hw_mutex = PTHREAD_MUTEX_INITIALIZER;
 
     if (!hw_initialized) {
-      hwdetect_init(&hw_info);
-      hwdetect_autotune_threads(&hw_info);
-      hw_initialized = 1;
+      pthread_mutex_lock(&hw_mutex);
+      if (!hw_initialized) {
+        hwdetect_init(&hw_info);
+        hwdetect_autotune_threads(&hw_info);
+        __sync_synchronize(); /* Memory barrier */
+        hw_initialized = 1;
+      }
+      pthread_mutex_unlock(&hw_mutex);
     }
 
     num_threads = hwdetect_get_optimal_threads(&hw_info);
