@@ -1,0 +1,21 @@
+# Build artifacts
+build/
+*.o
+*.a
+
+# IDE/Editor
+.cache/
+.clangd
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# Test data
+*.log
+test_data/
+
+# OS
+.DS_Store
+Thumbs.db
