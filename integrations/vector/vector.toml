@@ -1,0 +1,37 @@
+# Vector configuration with PlumbrC transform
+#
+# Place in /etc/vector/vector.toml
+#
+# Vector is a high-performance observability data pipeline
+
+[sources.app_logs]
+type = "file"
+include = ["/var/log/app/*.log"]
+
+# Redact secrets using PlumbrC
+[transforms.redact_secrets]
+type = "remap"
+inputs = ["app_logs"]
+source = '''
+# Shell out to plumbr for redaction
+.message = string!(run_command!("/usr/local/bin/plumbr", ["-"], stdin: .message))
+'''
+
+# Alternative: Use exec transform
+[transforms.redact_exec]
+type = "exec"
+inputs = ["app_logs"]
+command = ["/usr/local/bin/plumbr"]
+mode = "streaming"
+
+[sinks.elasticsearch]
+type = "elasticsearch"
+inputs = ["redact_secrets"]
+endpoints = ["http://elasticsearch:9200"]
+bulk.index = "app-logs-%Y.%m.%d"
+
+[sinks.file]
+type = "file"
+inputs = ["redact_secrets"]
+path = "/var/log/safe/app.log"
+encoding.codec = "text"

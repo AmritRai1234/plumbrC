@@ -1,0 +1,43 @@
+# Example: PlumbrC as log filter sidecar
+#
+# Usage: docker-compose up
+# Logs from 'app' are automatically redacted before reaching 'log-viewer'
+
+version: '3.8'
+
+services:
+  # Your application
+  app:
+    image: your-app:latest
+    # Pipe logs through PlumbrC
+    logging:
+      driver: "local"
+      options:
+        max-size: "10m"
+    volumes:
+      - app-logs:/var/log/app
+
+  # PlumbrC log redactor
+  plumbr:
+    build:
+      context: ../..
+      dockerfile: integrations/docker/Dockerfile
+    command: [ "-p", "/etc/plumbr/patterns/all.txt" ]
+    volumes:
+      - app-logs:/var/log/app:ro
+      - safe-logs:/var/log/safe
+    entrypoint: >
+      sh -c "tail -F /var/log/app/*.log | plumbr > /var/log/safe/app.log"
+    restart: unless-stopped
+
+  # Example log destination (optional)
+  log-viewer:
+    image: amir20/dozzle:latest
+    ports:
+      - "8080:8080"
+    volumes:
+      - safe-logs:/var/log/safe:ro
+
+volumes:
+  app-logs:
+  safe-logs:

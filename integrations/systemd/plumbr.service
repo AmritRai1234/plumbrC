@@ -1,0 +1,38 @@
+# PlumbrC systemd service
+#
+# Install: sudo cp plumbr.service /etc/systemd/system/
+# Enable:  sudo systemctl enable plumbr
+# Start:   sudo systemctl start plumbr
+#
+# This service watches a log file and writes redacted output
+
+[Unit]
+Description=PlumbrC Log Redactor
+After=network.target
+Documentation=https://github.com/your-org/plumbrc
+
+[Service]
+Type=simple
+User=nobody
+Group=nogroup
+
+# Watch input log and write to output
+ExecStart=/bin/sh -c 'tail -F /var/log/app/app.log | /usr/local/bin/plumbr >> /var/log/safe/app.log'
+
+# Restart on failure
+Restart=always
+RestartSec=5
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/log/safe
+
+# Resource limits
+MemoryMax=128M
+CPUQuota=50%
+
+[Install]
+WantedBy=multi-user.target

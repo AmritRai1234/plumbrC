@@ -1,0 +1,78 @@
+# PlumbrC Kubernetes Sidecar Example
+#
+# Add PlumbrC as a sidecar container to redact logs before shipping
+#
+# Usage: kubectl apply -f sidecar.yaml
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: plumbr-patterns
+data:
+  custom.txt: |
+    # Add custom patterns here
+    # Format: name|literal|regex|replacement
+    my_api_key|MY_SECRET|MY_SECRET_[A-Za-z0-9]+|[REDACTED:my_secret]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+    spec:
+      containers:
+      # Your application
+      - name: app
+        image: your-app:latest
+        volumeMounts:
+        - name: logs
+          mountPath: /var/log/app
+
+      # PlumbrC sidecar
+      - name: plumbr
+        image: plumbrc:latest
+        command:
+        - sh
+        - -c
+        - |
+          tail -F /var/log/app/*.log | plumbr > /var/log/safe/app.log
+        volumeMounts:
+        - name: logs
+          mountPath: /var/log/app
+          readOnly: true
+        - name: safe-logs
+          mountPath: /var/log/safe
+        - name: patterns
+          mountPath: /etc/plumbr/custom
+        resources:
+          requests:
+            cpu: 50m
+            memory: 32Mi
+          limits:
+            cpu: 200m
+            memory: 64Mi
+
+      # Log shipper (e.g., Fluent Bit)
+      - name: fluent-bit
+        image: fluent/fluent-bit:latest
+        volumeMounts:
+        - name: safe-logs
+          mountPath: /var/log/safe
+          readOnly: true
+
+      volumes:
+      - name: logs
+        emptyDir: {}
+      - name: safe-logs
+        emptyDir: {}
+      - name: patterns
+        configMap:
+          name: plumbr-patterns

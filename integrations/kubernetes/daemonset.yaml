@@ -1,0 +1,55 @@
+# PlumbrC DaemonSet - Process all node logs
+#
+# Runs one PlumbrC instance per node to redact container logs
+#
+# Usage: kubectl apply -f daemonset.yaml
+
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: plumbr-log-redactor
+  namespace: kube-system
+spec:
+  selector:
+    matchLabels:
+      name: plumbr
+  template:
+    metadata:
+      labels:
+        name: plumbr
+    spec:
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        effect: NoSchedule
+      containers:
+      - name: plumbr
+        image: plumbrc:latest
+        command:
+        - sh
+        - -c
+        - |
+          # Watch all container logs and redact them
+          for log in /var/log/containers/*.log; do
+            tail -F "$log" | plumbr >> "/var/log/safe/$(basename $log)" &
+          done
+          wait
+        volumeMounts:
+        - name: varlog
+          mountPath: /var/log
+        - name: safe-logs
+          mountPath: /var/log/safe
+        resources:
+          requests:
+            cpu: 100m
+            memory: 64Mi
+          limits:
+            cpu: 500m
+            memory: 128Mi
+      volumes:
+      - name: varlog
+        hostPath:
+          path: /var/log
+      - name: safe-logs
+        hostPath:
+          path: /var/log/safe
+          type: DirectoryOrCreate
