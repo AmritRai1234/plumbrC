@@ -22,6 +22,10 @@ typedef struct {
   char *output_buf;
   size_t output_capacity;
 
+  /* Thread-local PCRE2 match data (one per pattern) */
+  pcre2_match_data **match_data;
+  size_t num_patterns;
+
   /* Stats */
   size_t lines_scanned;
   size_t lines_modified;

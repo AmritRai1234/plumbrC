@@ -36,6 +36,23 @@ Redactor *redactor_create(Arena *arena, PatternSet *patterns,
     return NULL;
   r->output_capacity = output_capacity;
 
+  /* Allocate per-redactor match data for thread safety */
+  r->num_patterns = patterns_count(patterns);
+  r->match_data =
+      arena_alloc(arena, r->num_patterns * sizeof(pcre2_match_data *));
+  if (!r->match_data)
+    return NULL;
+
+  /* Create match data for each pattern */
+  for (size_t i = 0; i < r->num_patterns; i++) {
+    const Pattern *pat = patterns_get(patterns, (uint32_t)i);
+    if (pat && pat->regex) {
+      r->match_data[i] = pcre2_match_data_create_from_pattern(pat->regex, NULL);
+    } else {
+      r->match_data[i] = NULL;
+    }
+  }
+
   r->lines_scanned = 0;
   r->lines_modified = 0;
   r->patterns_matched = 0;
@@ -87,6 +104,12 @@ const char *redactor_process(Redactor *r, const char *line, size_t len,
       continue;
     }
 
+    /* Get per-redactor match data for thread safety */
+    if (ac->pattern_id >= r->num_patterns || !r->match_data[ac->pattern_id]) {
+      continue;
+    }
+    pcre2_match_data *md = r->match_data[ac->pattern_id];
+
     /* Try to match near the AC hit position */
     size_t search_start =
         (ac->position >= ac->length) ? (ac->position - ac->length) : 0;
@@ -95,11 +118,11 @@ const char *redactor_process(Redactor *r, const char *line, size_t len,
     if (search_start > 10)
       search_start -= 10;
 
-    int rc = pcre2_match(pat->regex, (PCRE2_SPTR)line, len, search_start, 0,
-                         pat->match_data, NULL);
+    int rc = pcre2_match(pat->regex, (PCRE2_SPTR)line, len, search_start, 0, md,
+                         NULL);
 
     if (rc > 0) {
-      PCRE2_SIZE *ovector = pcre2_get_ovector_pointer(pat->match_data);
+      PCRE2_SIZE *ovector = pcre2_get_ovector_pointer(md);
 
       /* Check if match is valid (not past line end) */
       if (ovector[1] <= len) {

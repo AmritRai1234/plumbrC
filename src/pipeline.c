@@ -5,6 +5,7 @@
 
 #include "arena.h"
 #include "io.h"
+#include "parallel.h"
 #include "patterns.h"
 #include "plumbr.h"
 #include "redactor.h"
@@ -111,8 +112,117 @@ static int process_single_threaded(PlumbrContext *ctx) {
   return 0;
 }
 
-/* Batch size for parallel processing */
-#define BATCH_SIZE 1024
+/* Batch size for parallel processing - fits in L3 cache */
+#define BATCH_SIZE 4096
+
+/*
+ * New parallel processing using pthread barriers
+ * More reliable than the old thread pool implementation
+ */
+static int process_parallel_new(PlumbrContext *ctx, int num_threads) {
+  ParallelCtx *pctx =
+      parallel_create(num_threads, ctx->patterns, PLUMBR_MAX_LINE_SIZE);
+  if (!pctx) {
+    fprintf(stderr, "Warning: Failed to create parallel context, "
+                    "using single-threaded\n");
+    return process_single_threaded(ctx);
+  }
+
+  /* Allocate batch storage */
+  const char **lines = malloc(BATCH_SIZE * sizeof(char *));
+  size_t *lengths = malloc(BATCH_SIZE * sizeof(size_t));
+  char **outputs = malloc(BATCH_SIZE * sizeof(char *));
+  size_t *out_lengths = malloc(BATCH_SIZE * sizeof(size_t));
+  char **line_copies = malloc(BATCH_SIZE * sizeof(char *));
+
+  if (!lines || !lengths || !outputs || !out_lengths || !line_copies) {
+    free(lines);
+    free(lengths);
+    free(outputs);
+    free(out_lengths);
+    free(line_copies);
+    parallel_destroy(pctx);
+    return process_single_threaded(ctx);
+  }
+
+  /* Allocate output buffers and line copies */
+  for (size_t i = 0; i < BATCH_SIZE; i++) {
+    outputs[i] = malloc(PLUMBR_MAX_LINE_SIZE);
+    line_copies[i] = malloc(PLUMBR_MAX_LINE_SIZE);
+    if (!outputs[i] || !line_copies[i]) {
+      for (size_t j = 0; j <= i; j++) {
+        free(outputs[j]);
+        free(line_copies[j]);
+      }
+      free(lines);
+      free(lengths);
+      free(outputs);
+      free(out_lengths);
+      free(line_copies);
+      parallel_destroy(pctx);
+      return process_single_threaded(ctx);
+    }
+  }
+
+  size_t batch_count = 0;
+  size_t line_len;
+  const char *line;
+  int result = 0;
+
+  while ((line = io_read_line(&ctx->io, &line_len)) != NULL) {
+    /* Copy line (I/O buffer gets reused) */
+    if (line_len < PLUMBR_MAX_LINE_SIZE) {
+      memcpy(line_copies[batch_count], line, line_len + 1);
+    } else {
+      memcpy(line_copies[batch_count], line, PLUMBR_MAX_LINE_SIZE - 1);
+      line_copies[batch_count][PLUMBR_MAX_LINE_SIZE - 1] = '\0';
+      line_len = PLUMBR_MAX_LINE_SIZE - 1;
+    }
+
+    lines[batch_count] = line_copies[batch_count];
+    lengths[batch_count] = line_len;
+    batch_count++;
+
+    if (batch_count >= BATCH_SIZE) {
+      /* Process batch */
+      parallel_process(pctx, lines, lengths, outputs, out_lengths, batch_count);
+
+      /* Write results in order */
+      for (size_t i = 0; i < batch_count; i++) {
+        if (!io_write_line(&ctx->io, outputs[i], out_lengths[i])) {
+          result = 1;
+          goto cleanup;
+        }
+      }
+      batch_count = 0;
+    }
+  }
+
+  /* Process remaining */
+  if (batch_count > 0) {
+    parallel_process(pctx, lines, lengths, outputs, out_lengths, batch_count);
+    for (size_t i = 0; i < batch_count; i++) {
+      if (!io_write_line(&ctx->io, outputs[i], out_lengths[i])) {
+        result = 1;
+        goto cleanup;
+      }
+    }
+  }
+
+cleanup:
+  for (size_t i = 0; i < BATCH_SIZE; i++) {
+    free(outputs[i]);
+    free(line_copies[i]);
+  }
+  free(lines);
+  free(lengths);
+  free(outputs);
+  free(out_lengths);
+  free(line_copies);
+  parallel_destroy(pctx);
+
+  return result;
+}
 
 /*
  * Multi-threaded batch processing
@@ -234,14 +344,19 @@ int plumbr_process_fd(PlumbrContext *ctx, int in_fd, int out_fd) {
   io_init(&ctx->io, in_fd, out_fd);
 
   int result;
+  int num_threads = ctx->config.num_threads;
+
+  /* Auto-detect thread count if 0 */
+  if (num_threads == 0) {
+    num_threads = sysconf(_SC_NPROCESSORS_ONLN);
+    if (num_threads <= 0)
+      num_threads = 1;
+  }
 
   /* Choose processing mode */
-  /* NOTE: Multi-threading is experimental and may lose data. Disabled for now.
-   */
-  if (ctx->config.num_threads > 1) {
-    /* Multi-threading requested but currently disabled due to sync issues */
-    /* TODO: Fix thread pool synchronization before enabling */
-    result = process_single_threaded(ctx);
+  if (num_threads > 1) {
+    /* Use new parallel implementation with pthread barriers */
+    result = process_parallel_new(ctx, num_threads);
   } else {
     result = process_single_threaded(ctx);
   }
