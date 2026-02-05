@@ -5,6 +5,7 @@
  * Usage: plumbr [OPTIONS] < input > output
  */
 
+#include "hwdetect.h"
 #include "plumbr.h"
 
 #include <getopt.h>
@@ -30,6 +31,7 @@ static void print_usage(const char *prog) {
           "  -s, --stats           Print statistics to stderr (default: on)\n");
   fprintf(stderr, "  -h, --help            Show this help message\n");
   fprintf(stderr, "  -v, --version         Show version\n");
+  fprintf(stderr, "  -H, --hwinfo          Show hardware detection info\n");
   fprintf(stderr, "\n");
   fprintf(stderr, "Pattern file format (one per line):\n");
   fprintf(stderr, "  name|literal|regex|replacement\n");
@@ -58,10 +60,11 @@ int main(int argc, char *argv[]) {
       {"stats", no_argument, 0, 's'},
       {"help", no_argument, 0, 'h'},
       {"version", no_argument, 0, 'v'},
+      {"hwinfo", no_argument, 0, 'H'},
       {0, 0, 0, 0}};
 
   int opt;
-  while ((opt = getopt_long(argc, argv, "p:j:dDqshv", long_options, NULL)) !=
+  while ((opt = getopt_long(argc, argv, "p:j:dDqshvH", long_options, NULL)) !=
          -1) {
     switch (opt) {
     case 'p':
@@ -88,6 +91,12 @@ int main(int argc, char *argv[]) {
     case 'v':
       print_version();
       return 0;
+    case 'H': {
+      HardwareInfo hw;
+      hwdetect_init(&hw);
+      hwdetect_print(&hw);
+      return 0;
+    }
     default:
       print_usage(argv[0]);
       return 1;

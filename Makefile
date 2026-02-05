@@ -18,11 +18,14 @@ LIBRARY = libplumbr.a
 
 # Sources
 SRCS = $(wildcard $(SRC_DIR)/*.c)
+AMD_SRCS = $(wildcard $(SRC_DIR)/amd/*.c)
 OBJS = $(patsubst $(SRC_DIR)/%.c,$(OBJ_DIR)/%.o,$(SRCS))
-LIB_OBJS = $(filter-out $(OBJ_DIR)/main.o,$(OBJS))
+AMD_OBJS = $(patsubst $(SRC_DIR)/amd/%.c,$(OBJ_DIR)/amd_%.o,$(AMD_SRCS))
+ALL_OBJS = $(OBJS) $(AMD_OBJS)
+LIB_OBJS = $(filter-out $(OBJ_DIR)/main.o,$(ALL_OBJS))
 
 # Compiler flags
-CFLAGS = -std=c11 -I$(INC_DIR) -D_GNU_SOURCE
+CFLAGS = -std=c11 -I$(INC_DIR) -I$(SRC_DIR)/amd -D_GNU_SOURCE
 LDFLAGS = -lpcre2-8 -lpthread
 
 # Warning flags (strict)
@@ -71,8 +74,8 @@ profile: LDFLAGS += $(PROFILE_FLAGS)
 profile: $(BIN_DIR)/$(TARGET)
 
 # Build binary
-$(BIN_DIR)/$(TARGET): $(OBJS) | $(BIN_DIR)
-	$(CC) $(OBJS) -o $@ $(LDFLAGS)
+$(BIN_DIR)/$(TARGET): $(ALL_OBJS) | $(BIN_DIR)
+	$(CC) $(ALL_OBJS) -o $@ $(LDFLAGS)
 	@echo "Built: $@"
 
 # Build library
@@ -85,6 +88,10 @@ $(LIB_DIR)/$(LIBRARY): $(LIB_OBJS) | $(LIB_DIR)
 # Compile source files
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c | $(OBJ_DIR)
 	$(CC) $(CFLAGS) -c $< -o $@
+
+# Compile AMD-specific files with AVX2
+$(OBJ_DIR)/amd_%.o: $(SRC_DIR)/amd/%.c | $(OBJ_DIR)
+	$(CC) $(CFLAGS) -mavx2 -c $< -o $@
 
 # Create directories
 $(BUILD_DIR) $(OBJ_DIR) $(LIB_DIR) $(BIN_DIR):
