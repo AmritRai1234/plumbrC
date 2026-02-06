@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PlumbrC - High-Performance Log Redaction Pipeline</title>
+    <meta name="description" content="Blazing fast log redaction in C. 500K+ lines/sec, 702 secret detection patterns, zero-allocation hot path.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-card: #1a1a24;
+            --accent: #6366f1;
+            --accent-glow: rgba(99, 102, 241, 0.4);
+            --success: #10b981;
+            --warning: #f59e0b;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --border: rgba(255, 255, 255, 0.08);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Animated background */
+        .bg-gradient {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(ellipse at 20% 20%, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 80%, rgba(16, 185, 129, 0.1) 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 50%, rgba(99, 102, 241, 0.05) 0%, transparent 70%);
+            z-index: -1;
+            animation: pulse 8s ease-in-out infinite alternate;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.8; }
+            100% { opacity: 1; }
+        }
+
+        /* Navigation */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 1rem 2rem;
+            background: rgba(10, 10, 15, 0.8);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-weight: 700;
+            font-size: 1.25rem;
+        }
+
+        .logo-icon {
+            font-size: 1.5rem;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover {
+            color: var(--text-primary);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s;
+            cursor: pointer;
+            border: none;
+            font-size: 1rem;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+            box-shadow: 0 4px 20px var(--accent-glow);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 30px var(--accent-glow);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-card);
+            border-color: var(--text-muted);
+        }
+
+        /* Hero Section */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 8rem 2rem 4rem;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: rgba(99, 102, 241, 0.15);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            border-radius: 100px;
+            font-size: 0.875rem;
+            color: var(--accent);
+            margin-bottom: 2rem;
+            animation: fadeInUp 0.6s ease-out;
+        }
+
+        .badge::before {
+            content: '🔧';
+        }
+
+        h1 {
+            font-size: clamp(3rem, 8vw, 5rem);
+            font-weight: 800;
+            line-height: 1.1;
+            margin-bottom: 1.5rem;
+            animation: fadeInUp 0.6s ease-out 0.1s backwards;
+        }
+
+        h1 span {
+            background: linear-gradient(135deg, var(--accent) 0%, #a855f7 50%, var(--success) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            font-size: 1.25rem;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin-bottom: 3rem;
+            animation: fadeInUp 0.6s ease-out 0.2s backwards;
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            justify-content: center;
+            animation: fadeInUp 0.6s ease-out 0.3s backwards;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Stats */
+        .stats {
+            display: flex;
+            gap: 4rem;
+            margin-top: 5rem;
+            padding: 2rem;
+            animation: fadeInUp 0.6s ease-out 0.4s backwards;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* Code Demo */
+        .code-demo {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 0;
+            margin-top: 4rem;
+            max-width: 700px;
+            width: 100%;
+            overflow: hidden;
+            animation: fadeInUp 0.6s ease-out 0.5s backwards;
+        }
+
+        .code-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 1rem;
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .code-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .code-dot.red { background: #ef4444; }
+        .code-dot.yellow { background: #f59e0b; }
+        .code-dot.green { background: #10b981; }
+
+        .code-content {
+            padding: 1.5rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.875rem;
+            line-height: 1.8;
+            overflow-x: auto;
+        }
+
+        .code-line {
+            display: flex;
+        }
+
+        .code-prompt {
+            color: var(--success);
+            margin-right: 0.75rem;
+        }
+
+        .code-cmd {
+            color: var(--text-primary);
+        }
+
+        .code-comment {
+            color: var(--text-muted);
+        }
+
+        /* Features Grid */
+        .features {
+            padding: 6rem 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .section-title {
+            text-align: center;
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+
+        .section-subtitle {
+            text-align: center;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto 4rem;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .feature-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 2rem;
+            transition: all 0.3s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(99, 102, 241, 0.3);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .feature-icon {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .feature-card h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+        }
+
+        .feature-card p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+
+        /* Patterns Section */
+        .patterns {
+            padding: 6rem 2rem;
+            background: var(--bg-secondary);
+        }
+
+        .patterns-content {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .pattern-categories {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 1rem;
+            margin-top: 3rem;
+        }
+
+        .pattern-tag {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+
+        .pattern-tag:hover {
+            border-color: var(--accent);
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        .pattern-count {
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        /* CTA Section */
+        .cta {
+            padding: 8rem 2rem;
+            text-align: center;
+        }
+
+        .cta h2 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+
+        .cta p {
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+            font-size: 1.125rem;
+        }
+
+        /* Footer */
+        footer {
+            padding: 3rem 2rem;
+            border-top: 1px solid var(--border);
+            text-align: center;
+            color: var(--text-muted);
+        }
+
+        footer a {
+            color: var(--text-secondary);
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            color: var(--text-primary);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+
+            .stats {
+                flex-direction: column;
+                gap: 2rem;
+            }
+
+            .hero-buttons {
+                flex-direction: column;
+                width: 100%;
+                max-width: 300px;
+            }
+
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-gradient"></div>
+
+    <nav>
+        <div class="logo">
+            <span class="logo-icon">🔧</span>
+            <span>PlumbrC</span>
+        </div>
+        <ul class="nav-links">
+            <li><a href="#features">Features</a></li>
+            <li><a href="#patterns">Patterns</a></li>
+            <li><a href="https://github.com/AmritRai1234/plumbrC" target="_blank">GitHub</a></li>
+        </ul>
+        <a href="https://github.com/AmritRai1234/plumbrC" class="btn btn-primary" target="_blank">
+            ⭐ Star on GitHub
+        </a>
+    </nav>
+
+    <section class="hero">
+        <div class="badge">High-Performance Log Redaction</div>
+        <h1>Protect Your Logs.<br><span>Protect Your Secrets.</span></h1>
+        <p class="subtitle">
+            Blazing fast log redaction pipeline in pure C. Two-phase matching with 
+            Aho-Corasick + PCRE2, 702 built-in patterns, zero-allocation hot path.
+        </p>
+        <div class="hero-buttons">
+            <a href="https://github.com/AmritRai1234/plumbrC" class="btn btn-primary" target="_blank">
+                Get Started →
+            </a>
+            <a href="https://github.com/AmritRai1234/plumbrC#-usage" class="btn btn-secondary" target="_blank">
+                View Docs
+            </a>
+        </div>
+
+        <div class="stats">
+            <div class="stat">
+                <div class="stat-value">500K+</div>
+                <div class="stat-label">Lines/Second</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value">702</div>
+                <div class="stat-label">Detection Patterns</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value">0</div>
+                <div class="stat-label">Allocations in Hot Path</div>
+            </div>
+        </div>
+
+        <div class="code-demo">
+            <div class="code-header">
+                <span class="code-dot red"></span>
+                <span class="code-dot yellow"></span>
+                <span class="code-dot green"></span>
+            </div>
+            <div class="code-content">
+                <div class="code-line"><span class="code-prompt">$</span><span class="code-cmd">echo "api_key=sk-proj-abc123" | plumbr</span></div>
+                <div class="code-line"><span class="code-comment"># api_key=[REDACTED:api_key]</span></div>
+                <br>
+                <div class="code-line"><span class="code-prompt">$</span><span class="code-cmd">tail -f /var/log/app.log | plumbr > safe.log</span></div>
+                <div class="code-line"><span class="code-comment"># Real-time log redaction pipeline</span></div>
+            </div>
+        </div>
+    </section>
+
+    <section class="features" id="features">
+        <h2 class="section-title">Why PlumbrC?</h2>
+        <p class="section-subtitle">
+            Built for production systems that need blazing-fast secret detection 
+            without compromising security or reliability.
+        </p>
+
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">⚡</div>
+                <h3>Blazing Fast</h3>
+                <p>Two-phase Aho-Corasick + PCRE2 JIT matching. Only 1-5% of lines hit the regex engine.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">💾</div>
+                <h3>Zero Allocations</h3>
+                <p>Arena-based memory with no malloc/free in the hot path. Predictable, consistent performance.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🔗</div>
+                <h3>Pipeline Ready</h3>
+                <p>Designed for Unix stdin/stdout chaining. Works seamlessly with your existing log infrastructure.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🔒</div>
+                <h3>Security First</h3>
+                <p>Bounds checking, input validation, ReDoS protection. Built with sanitizers and static analysis.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">📦</div>
+                <h3>702 Patterns</h3>
+                <p>AWS, GCP, Stripe, GitHub, and 60+ more services covered out of the box.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🐳</div>
+                <h3>Easy Deployment</h3>
+                <p>Ready-to-use configs for Docker, Kubernetes, Fluentd, Logstash, Vector, and systemd.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="patterns" id="patterns">
+        <div class="patterns-content">
+            <h2 class="section-title">Comprehensive Pattern Library</h2>
+            <p class="section-subtitle">
+                702 patterns across 12 categories, covering all major cloud providers, 
+                payment processors, and developer tools.
+            </p>
+
+            <div class="pattern-categories">
+                <div class="pattern-tag"><span>☁️ Cloud</span><span class="pattern-count">109</span></div>
+                <div class="pattern-tag"><span>💬 Comms</span><span class="pattern-count">127</span></div>
+                <div class="pattern-tag"><span>💳 Payment</span><span class="pattern-count">79</span></div>
+                <div class="pattern-tag"><span>🔀 VCS</span><span class="pattern-count">63</span></div>
+                <div class="pattern-tag"><span>🏗️ Infra</span><span class="pattern-count">72</span></div>
+                <div class="pattern-tag"><span>🔐 Crypto</span><span class="pattern-count">54</span></div>
+                <div class="pattern-tag"><span>🔑 Secrets</span><span class="pattern-count">52</span></div>
+                <div class="pattern-tag"><span>📱 Social</span><span class="pattern-count">50</span></div>
+                <div class="pattern-tag"><span>🗄️ Database</span><span class="pattern-count">42</span></div>
+                <div class="pattern-tag"><span>📊 Analytics</span><span class="pattern-count">30</span></div>
+                <div class="pattern-tag"><span>👤 PII</span><span class="pattern-count">14</span></div>
+                <div class="pattern-tag"><span>🎫 Auth</span><span class="pattern-count">10</span></div>
+            </div>
+        </div>
+    </section>
+
+    <section class="cta">
+        <h2>Ready to Protect Your Logs?</h2>
+        <p>Get started in seconds. No dependencies beyond PCRE2.</p>
+        <div class="hero-buttons" style="justify-content: center;">
+            <a href="https://github.com/AmritRai1234/plumbrC" class="btn btn-primary" target="_blank">
+                View on GitHub →
+            </a>
+        </div>
+    </section>
+
+    <footer>
+        <p>
+            Built with ❤️ by <a href="https://github.com/AmritRai1234" target="_blank">Amrit Rai</a> · 
+            <a href="https://github.com/AmritRai1234/plumbrC/blob/main/LICENSE" target="_blank">Source Available License</a>
+        </p>
+    </footer>
+</body>
+</html>
