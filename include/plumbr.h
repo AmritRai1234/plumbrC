@@ -11,8 +11,6 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#include "config.h"
-
 /* Forward declarations */
 typedef struct PlumbrContext PlumbrContext;
 

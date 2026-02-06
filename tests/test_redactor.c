@@ -11,7 +11,6 @@
 
 #include "arena.h"
 #include "patterns.h"
-#include "plumbr.h"
 #include "redactor.h"
 
 /* Test helpers */
