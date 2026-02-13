@@ -1,5 +1,5 @@
 # ============================================
-# Stage 1: Build the C binary
+# Stage 1: Build the C binaries
 # ============================================
 FROM alpine:3.19 AS c-builder
 
@@ -11,8 +11,9 @@ COPY include/ include/
 COPY patterns/ patterns/
 COPY Makefile .
 
-# Build without -march=native (not portable in containers)
-RUN make OPT_FLAGS="-O3 -march=x86-64 -flto -fomit-frame-pointer -fno-plt -ffunction-sections -fdata-sections"
+# Build CLI + HTTP server without -march=native (not portable in containers)
+RUN make OPT_FLAGS="-O3 -march=x86-64 -flto -fomit-frame-pointer -fno-plt -ffunction-sections -fdata-sections" && \
+    make server OPT_FLAGS="-O3 -march=x86-64 -flto -fomit-frame-pointer -fno-plt -ffunction-sections -fdata-sections"
 
 # ============================================
 # Stage 2: Build the Next.js app
@@ -42,9 +43,10 @@ RUN apk add --no-cache pcre2 libstdc++
 
 WORKDIR /app
 
-# Copy the compiled C binary
+# Copy the compiled C binaries
 COPY --from=c-builder /app/build/bin/plumbr ./build/bin/plumbr
-RUN chmod +x ./build/bin/plumbr
+COPY --from=c-builder /app/build/bin/plumbr-server ./build/bin/plumbr-server
+RUN chmod +x ./build/bin/plumbr ./build/bin/plumbr-server
 
 # Copy pattern files
 COPY --from=c-builder /app/patterns/ ./patterns/
@@ -57,17 +59,20 @@ COPY --from=web-builder /app/web/public ./web/public
 # Create data directory for SQLite
 RUN mkdir -p /app/data
 
+# Startup script that runs both C server + Next.js
+COPY start.sh /app/start.sh
+RUN chmod +x /app/start.sh
+
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 ENV DB_PATH=/app/data/plumbr.db
 ENV JWT_SECRET=change-this-in-production
+ENV PLUMBR_THREADS=4
 
-EXPOSE 3000
+EXPOSE 3000 8081
 
 # Data volume for SQLite persistence
 VOLUME ["/app/data"]
 
-WORKDIR /app/web
-CMD ["node", "server.js"]
-
+CMD ["/app/start.sh"]

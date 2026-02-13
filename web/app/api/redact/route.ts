@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { spawn } from "child_process";
-import path from "path";
 
-// Path to the plumbr binary (built in the parent directory)
-const PLUMBR_BIN = path.resolve(process.cwd(), "..", "build", "bin", "plumbr");
+// The PlumbrC HTTP server runs as a sidecar on port 8081
+// It handles redaction with pre-loaded patterns at 60K+ req/sec
+const PLUMBR_SERVER = process.env.PLUMBR_SERVER_URL || "http://localhost:8081";
 
 // Max input size: 1MB
 const MAX_INPUT_SIZE = 1024 * 1024;
@@ -27,89 +26,42 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const start = performance.now();
-
-        // Use spawn for better control over stdin/stdout
-        const result = await new Promise<{ stdout: string; stderr: string }>(
-            (resolve, reject) => {
-                const child = spawn(PLUMBR_BIN, ["--threads", "1", "--quiet"], {
-                    stdio: ["pipe", "pipe", "pipe"],
-                });
-
-                let stdout = "";
-                let stderr = "";
-
-                child.stdout.on("data", (data: Buffer) => {
-                    stdout += data.toString();
-                });
-
-                child.stderr.on("data", (data: Buffer) => {
-                    stderr += data.toString();
-                });
-
-                child.on("close", (code: number | null) => {
-                    if (code === 0) {
-                        resolve({ stdout, stderr });
-                    } else {
-                        reject(new Error(`Process exited with code ${code}: ${stderr}`));
-                    }
-                });
-
-                child.on("error", (err: Error) => {
-                    reject(err);
-                });
-
-                // Set timeout
-                const timer = setTimeout(() => {
-                    child.kill("SIGKILL");
-                    reject(new Error("timeout"));
-                }, 5000);
-
-                child.on("close", () => clearTimeout(timer));
-
-                // Write input and close stdin
-                child.stdin.write(text);
-                child.stdin.end();
-            }
-        );
-
-        const elapsed = performance.now() - start;
-
-        // Calculate stats
-        const inputLines = text.split("\n");
-        const outputLines = result.stdout.replace(/\n$/, "").split("\n");
-        const linesProcessed = inputLines.length;
-        const linesModified = outputLines.filter(
-            (line: string, i: number) => i < inputLines.length && line !== inputLines[i]
-        ).length;
-        const patternsMatched = (result.stdout.match(/\[REDACTED:[^\]]+\]/g) || []).length;
-
-        return NextResponse.json({
-            redacted: result.stdout.replace(/\n$/, ""),
-            stats: {
-                lines_processed: linesProcessed,
-                lines_modified: linesModified,
-                patterns_matched: patternsMatched,
-                processing_time_ms: elapsed,
-            },
+        // Proxy to the C HTTP server
+        const response = await fetch(`${PLUMBR_SERVER}/api/redact`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text }),
+            signal: AbortSignal.timeout(5000),
         });
-    } catch (error: unknown) {
-        const err = error as { code?: string; message?: string };
 
-        if (err.code === "ENOENT") {
+        if (!response.ok) {
+            const errorBody = await response.json().catch(() => ({}));
             return NextResponse.json(
-                {
-                    error:
-                        "PlumbrC binary not found. Run 'make' in the project root to build it.",
-                },
-                { status: 500 }
+                { error: errorBody.error || "Redaction service error" },
+                { status: response.status }
             );
         }
 
-        if (err.message === "timeout") {
+        const result = await response.json();
+        return NextResponse.json(result);
+    } catch (error: unknown) {
+        const err = error as { name?: string; message?: string };
+
+        if (err.name === "AbortError" || err.name === "TimeoutError") {
             return NextResponse.json(
                 { error: "Processing timed out (5s limit)" },
                 { status: 504 }
+            );
+        }
+
+        // Connection refused — C server not running
+        if (err.message?.includes("ECONNREFUSED") || err.message?.includes("fetch failed")) {
+            return NextResponse.json(
+                {
+                    error:
+                        "PlumbrC server not running. Start it with: ./build/bin/plumbr-server --port 8081",
+                },
+                { status: 503 }
             );
         }
 

@@ -18,8 +18,8 @@ LIBRARY = libplumbr.a
 SHARED_LIB = libplumbr.so
 SHARED_LIB_VERSION = 1.0.0
 
-# Sources (exclude main.c for library builds)
-SRCS = $(wildcard $(SRC_DIR)/*.c)
+# Sources (exclude main.c and server.c for library builds)
+SRCS = $(filter-out $(SRC_DIR)/server.c,$(wildcard $(SRC_DIR)/*.c))
 AMD_SRCS = $(wildcard $(SRC_DIR)/amd/*.c)
 OBJS = $(patsubst $(SRC_DIR)/%.c,$(OBJ_DIR)/%.o,$(SRCS))
 AMD_OBJS = $(patsubst $(SRC_DIR)/amd/%.c,$(OBJ_DIR)/amd_%.o,$(AMD_SRCS))
@@ -53,7 +53,7 @@ SANITIZE_FLAGS = -fsanitize=address,undefined -fno-omit-frame-pointer
 PROFILE_FLAGS = -g -pg
 
 # Default: release build
-.PHONY: all release debug sanitize profile clean test benchmark install
+.PHONY: all release debug sanitize profile clean test benchmark install server
 
 all: release
 
@@ -80,6 +80,18 @@ profile: $(BIN_DIR)/$(TARGET)
 $(BIN_DIR)/$(TARGET): $(ALL_OBJS) | $(BIN_DIR)
 	$(CC) $(ALL_OBJS) -o $@ $(LDFLAGS)
 	@echo "Built: $@"
+
+# Build HTTP server
+server: CFLAGS += $(WARNINGS) $(OPT_FLAGS) -DNDEBUG
+server: LDFLAGS += -flto -Wl,--gc-sections
+server: $(BIN_DIR)/plumbr-server
+
+$(BIN_DIR)/plumbr-server: $(OBJ_DIR)/server.o $(LIB_OBJS) | $(BIN_DIR)
+	$(CC) $(OBJ_DIR)/server.o $(LIB_OBJS) -o $@ $(LDFLAGS)
+	@echo "Built: $@"
+
+$(OBJ_DIR)/server.o: $(SRC_DIR)/server.c | $(OBJ_DIR)
+	$(CC) $(CFLAGS) -c $< -o $@
 
 # Build static library
 lib: $(LIB_DIR)/$(LIBRARY)
@@ -224,6 +236,7 @@ help:
 	@echo "  make sanitize - Build with address/UB sanitizers"
 	@echo "  make profile  - Build for profiling with gprof"
 	@echo "  make lib      - Build static library"
+	@echo "  make server   - Build HTTP API server"
 	@echo "  make test     - Quick functionality test"
 	@echo "  make benchmark- Run performance benchmark"
 	@echo "  make clean    - Remove build artifacts"
