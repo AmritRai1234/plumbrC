@@ -184,7 +184,9 @@ export default function Home() {
           <div className="flex items-center gap-1">
             <a href="#features" className="text-[13px] text-[var(--color-text-secondary)] hover:text-[var(--color-text)] transition-colors px-3 py-1.5 rounded-md hover:bg-[var(--color-bg-elevated)] hidden sm:block">Features</a>
             <a href="#patterns" className="text-[13px] text-[var(--color-text-secondary)] hover:text-[var(--color-text)] transition-colors px-3 py-1.5 rounded-md hover:bg-[var(--color-bg-elevated)] hidden sm:block">Patterns</a>
+            <a href="#python" className="text-[13px] text-[var(--color-text-secondary)] hover:text-[var(--color-text)] transition-colors px-3 py-1.5 rounded-md hover:bg-[var(--color-bg-elevated)] hidden sm:block">Python</a>
             <a href="#api" className="text-[13px] text-[var(--color-text-secondary)] hover:text-[var(--color-text)] transition-colors px-3 py-1.5 rounded-md hover:bg-[var(--color-bg-elevated)] hidden sm:block">API</a>
+            <Link href="/developers" className="text-[13px] text-[var(--color-text-secondary)] hover:text-[var(--color-text)] transition-colors px-3 py-1.5 rounded-md hover:bg-[var(--color-bg-elevated)] hidden sm:block">Developers</Link>
             <Link
               href="/playground"
               className="text-[13px] font-medium px-4 py-1.5 rounded-md transition-opacity hover:opacity-90 ml-2"
@@ -320,7 +322,7 @@ export default function Home() {
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-2xl font-semibold mb-3">REST API</h2>
-            <p className="text-sm text-[var(--color-text-secondary)]">One endpoint. Send text, get clean text back.</p>
+            <p className="text-sm text-[var(--color-text-secondary)]">Authenticate with your API key. Send text, get clean text back.</p>
           </div>
 
           <div className="code-block p-5">
@@ -334,7 +336,8 @@ export default function Home() {
               </button>
             </div>
             <pre className="text-xs font-mono leading-relaxed text-[var(--color-text-secondary)] overflow-x-auto">
-              {`curl -X POST https://your-host/api/redact \\
+              {`curl -X POST https://plumbr.ca/api/redact \\
+  -H "Authorization: Bearer plumbr_live_xxx" \\
   -H "Content-Type: application/json" \\
   -d '{"text": "key=AKIAIOSFODNN7EXAMPL3"}'
 
@@ -351,9 +354,94 @@ export default function Home() {
 
           <div className="grid grid-cols-3 gap-2.5 mt-6">
             {[
-              { icon: <Lock size={16} />, title: "No signup", desc: "Free to use" },
+              { icon: <Key size={16} />, title: "API Keys", desc: "Create a free account" },
               { icon: <Zap size={16} />, title: "<1ms", desc: "C engine speed" },
               { icon: <Shield size={16} />, title: "Ephemeral", desc: "Nothing stored" },
+            ].map((item) => (
+              <div key={item.title} className="card p-4 text-center hover:border-[var(--color-border-light)]">
+                <div className="flex justify-center text-[var(--color-text-secondary)] mb-2">{item.icon}</div>
+                <div className="text-sm font-medium">{item.title}</div>
+                <div className="text-[11px] text-[var(--color-text-tertiary)]">{item.desc}</div>
+              </div>
+            ))}
+          </div>
+
+          <div className="text-center mt-8">
+            <Link
+              href="/developers"
+              className="text-[13px] font-medium px-5 py-2 rounded-lg transition-opacity hover:opacity-90 inline-flex items-center gap-2"
+              style={{ background: '#e8e8e8', color: '#141414' }}
+            >
+              Get your API key
+              <ArrowRight size={14} />
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Python Package ── */}
+      <section id="python" className="py-20 px-6 divider">
+        <div className="max-w-3xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-2xl font-semibold mb-3">Python Package</h2>
+            <p className="text-sm text-[var(--color-text-secondary)]">pip install and start redacting in seconds.</p>
+          </div>
+
+          {/* Installation */}
+          <div className="code-block p-5 mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="font-mono text-sm text-[var(--color-text)]">
+                Installation
+              </div>
+              <button className="text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)] transition-colors">
+                <Copy size={14} />
+              </button>
+            </div>
+            <pre className="text-xs font-mono leading-relaxed text-[var(--color-text-secondary)] overflow-x-auto">
+              {`pip install plumbrc`}
+            </pre>
+          </div>
+
+          {/* Usage Example */}
+          <div className="code-block p-5 mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="font-mono text-sm text-[var(--color-text)]">
+                Usage
+              </div>
+              <button className="text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)] transition-colors">
+                <Copy size={14} />
+              </button>
+            </div>
+            <pre className="text-xs font-mono leading-relaxed text-[var(--color-text-secondary)] overflow-x-auto">
+              {`from plumbrc import Plumbr
+
+# Initialize
+p = Plumbr()
+
+# Redact secrets
+safe = p.redact("password=secret123")
+print(safe)  # "[REDACTED:password]"
+
+# Batch processing
+lines = ["api_key=secret", "normal log", "token=xyz"]
+safe_lines = p.redact_lines(lines)
+
+# Context manager
+with Plumbr() as p:
+    safe = p.redact("AWS_KEY=AKIAIOSFODNN7EXAMPLE")
+
+# Get statistics
+print(p.pattern_count)  # 14
+print(p.stats)          # {'lines_processed': 1, ...}`}
+            </pre>
+          </div>
+
+          {/* Performance Stats */}
+          <div className="grid grid-cols-3 gap-2.5">
+            {[
+              { icon: <Zap size={16} />, title: "71K lines/sec", desc: "Throughput" },
+              { icon: <Timer size={16} />, title: "13.9 µs", desc: "Per line" },
+              { icon: <Package size={16} />, title: "Zero deps", desc: "Pure ctypes" },
             ].map((item) => (
               <div key={item.title} className="card p-4 text-center hover:border-[var(--color-border-light)]">
                 <div className="flex justify-center text-[var(--color-text-secondary)] mb-2">{item.icon}</div>
@@ -365,11 +453,12 @@ export default function Home() {
         </div>
       </section>
 
+
       {/* ── CTA ── */}
       <section className="py-20 px-6 divider">
         <div className="max-w-md mx-auto text-center">
           <h2 className="text-2xl font-semibold mb-4">Ready to ship clean logs?</h2>
-          <p className="text-sm text-[var(--color-text-secondary)] mb-8">Try in the browser, integrate the API, or install the CLI.</p>
+          <p className="text-sm text-[var(--color-text-secondary)] mb-8">Try in the browser, install via pip, or integrate the API.</p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <Link
               href="/playground"
@@ -381,7 +470,7 @@ export default function Home() {
             </Link>
             <div className="code-block px-5 py-2.5 text-sm font-mono flex items-center gap-2">
               <Terminal size={14} className="text-[var(--color-text-tertiary)]" />
-              <span className="text-[var(--color-text-secondary)]">make && sudo make install</span>
+              <span className="text-[var(--color-text-secondary)]">pip install plumbrc</span>
             </div>
           </div>
         </div>
@@ -402,6 +491,7 @@ export default function Home() {
               GitHub <ExternalLink size={11} />
             </a>
             <Link href="/playground" className="hover:text-[var(--color-text)] transition-colors">Playground</Link>
+            <a href="#python" className="hover:text-[var(--color-text)] transition-colors">Python</a>
             <a href="#api" className="hover:text-[var(--color-text)] transition-colors">API</a>
           </div>
         </div>

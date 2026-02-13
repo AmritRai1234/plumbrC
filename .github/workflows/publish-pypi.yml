@@ -1,0 +1,43 @@
+name: 'Publish to PyPI'
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libpcre2-dev gcc
+          
+      - name: Build shared library
+        run: make shared
+        
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          
+      - name: Install build tools
+        run: pip install build twine
+        
+      - name: Build package
+        working-directory: python
+        run: |
+          mkdir -p plumbrc/lib
+          cp ../build/lib/libplumbr.so plumbrc/lib/
+          python -m build
+          
+      - name: Publish to PyPI
+        if: github.event_name == 'release'
+        working-directory: python
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+        run: twine upload dist/*

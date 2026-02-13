@@ -1,0 +1,11 @@
+# Include C source files in source distribution
+include ../src/*.c
+include ../include/*.h
+include ../patterns/*.txt
+include ../patterns/**/*.txt
+include ../Makefile
+include README.md
+include LICENSE
+
+# Include built library in binary wheels
+include plumbrc/lib/*.so

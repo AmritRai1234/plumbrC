@@ -8,6 +8,9 @@
   <img src="https://img.shields.io/badge/language-C11-blue.svg" alt="Language">
   <img src="https://img.shields.io/badge/patterns-702-green.svg" alt="Patterns">
   <img src="https://img.shields.io/badge/license-Source%20Available-orange.svg" alt="License">
+  <img src="https://img.shields.io/badge/python-pip%20install%20plumbrc-3776AB.svg?logo=python&logoColor=white" alt="Python">
+  <img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs Welcome">
+  <a href="https://github.com/AmritRai1234/plumbrC/discussions"><img src="https://img.shields.io/badge/discussions-join-blue.svg?logo=github" alt="Discussions"></a>
 </p>
 
 ---

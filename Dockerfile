@@ -21,6 +21,9 @@ RUN make
 # ============================================
 FROM node:20-alpine AS web-builder
 
+# Install build tools for native modules (better-sqlite3)
+RUN apk add --no-cache python3 make g++
+
 WORKDIR /app/web
 COPY web/package.json web/package-lock.json ./
 RUN npm ci
@@ -58,11 +61,20 @@ COPY --from=web-builder /app/web/.next/standalone ./web/
 COPY --from=web-builder /app/web/.next/static ./web/.next/static
 COPY --from=web-builder /app/web/public ./web/public
 
+# Create data directory for SQLite
+RUN mkdir -p /app/data
+
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
+ENV DB_PATH=/app/data/plumbr.db
+ENV JWT_SECRET=change-this-in-production
 
 EXPOSE 3000
 
+# Data volume for SQLite persistence
+VOLUME ["/app/data"]
+
 WORKDIR /app/web
 CMD ["node", "server.js"]
+
