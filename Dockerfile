@@ -1,12 +1,9 @@
 # ============================================
 # Stage 1: Build the C binary
 # ============================================
-FROM ubuntu:22.04 AS c-builder
+FROM alpine:3.19 AS c-builder
 
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    libpcre2-dev \
-    && rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache build-base pcre2-dev linux-headers
 
 WORKDIR /app
 COPY src/ src/
@@ -14,7 +11,8 @@ COPY include/ include/
 COPY patterns/ patterns/
 COPY Makefile .
 
-RUN make
+# Build without -march=native (not portable in containers)
+RUN make OPT_FLAGS="-O3 -march=x86-64 -flto -fomit-frame-pointer -fno-plt -ffunction-sections -fdata-sections"
 
 # ============================================
 # Stage 2: Build the Next.js app
@@ -37,15 +35,10 @@ RUN npm run build
 # ============================================
 # Stage 3: Production runtime
 # ============================================
-FROM ubuntu:22.04 AS runner
+FROM node:20-alpine AS runner
 
-# Install Node.js + PCRE2 runtime
-RUN apt-get update && apt-get install -y \
-    curl \
-    libpcre2-8-0 \
-    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
-    && apt-get install -y nodejs \
-    && rm -rf /var/lib/apt/lists/*
+# Install PCRE2 runtime + libc compatibility
+RUN apk add --no-cache pcre2 libstdc++
 
 WORKDIR /app
 
