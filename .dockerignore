@@ -1,0 +1,13 @@
+build/
+web/node_modules/
+web/.next/
+.git/
+.github/
+.cache/
+.clangd
+*.log
+gmon.out
+.DS_Store
+Thumbs.db
+*.o
+*.a
