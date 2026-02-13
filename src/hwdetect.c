@@ -173,22 +173,28 @@ static void detect_cache(CpuInfo *cpu) {
   cpu->l1_cache_kb = (ecx >> 24) & 0xFF;
 #endif
 
-  /* Fallback to sysconf */
+  /* Fallback to sysconf (glibc only — musl libc doesn't support these) */
+#ifdef _SC_LEVEL1_DCACHE_SIZE
   if (cpu->l1_cache_kb == 0) {
     long l1 = sysconf(_SC_LEVEL1_DCACHE_SIZE);
     if (l1 > 0)
       cpu->l1_cache_kb = l1 / 1024;
   }
+#endif
+#ifdef _SC_LEVEL2_CACHE_SIZE
   if (cpu->l2_cache_kb == 0) {
     long l2 = sysconf(_SC_LEVEL2_CACHE_SIZE);
     if (l2 > 0)
       cpu->l2_cache_kb = l2 / 1024;
   }
+#endif
+#ifdef _SC_LEVEL3_CACHE_SIZE
   if (cpu->l3_cache_kb == 0) {
     long l3 = sysconf(_SC_LEVEL3_CACHE_SIZE);
     if (l3 > 0)
       cpu->l3_cache_kb = l3 / 1024;
   }
+#endif
 }
 
 /* Detect core count */
