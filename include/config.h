@@ -31,8 +31,9 @@
 
 /* I/O */
 #define PLUMBR_IOV_BATCH 64 /* writev batch size */
-#define PLUMBR_MAX_FILE_SIZE (10ULL * 1024 * 1024 * 1024) /* 10GB rate limit   \
-                                                           */
+#define PLUMBR_MAX_FILE_SIZE                                                   \
+  (10ULL * 1024 * 1024 * 1024) /* 10GB rate limit                              \
+                                */
 
 /* Performance hints */
 #define PLUMBR_LIKELY(x) __builtin_expect(!!(x), 1)

@@ -272,6 +272,64 @@ plumbr < input.log > output.log
 # See integrations/kubernetes/
 ```
 
+## 🌐 Web Application
+
+PlumbrC ships with a full web interface built on **Next.js + TypeScript**:
+
+- **Landing Page** — Product overview, feature showcase, and live typing demo
+- **Interactive Playground** — Paste logs and see redaction in real-time
+- **REST API** — Programmatic access to the C engine over HTTP
+
+### Setup
+
+```bash
+cd web
+npm install
+npm run dev
+# Open http://localhost:3000
+```
+
+### REST API
+
+**`POST /api/redact`** — Redact secrets from text.
+
+```bash
+curl -X POST http://localhost:3000/api/redact \
+  -H "Content-Type: application/json" \
+  -d '{"text": "key=AKIAIOSFODNN7EXAMPL3 password=secret"}'
+```
+
+**Response:**
+
+```json
+{
+  "redacted": "key=[REDACTED:aws_access_key] [REDACTED:password]",
+  "stats": {
+    "lines_processed": 1,
+    "lines_modified": 1,
+    "patterns_matched": 2,
+    "processing_time_ms": 51.2
+  }
+}
+```
+
+| Detail | Value |
+|--------|-------|
+| Input limit | 1 MB |
+| Auth | None (open) |
+| Storage | Ephemeral — nothing is saved |
+| Engine | Calls the compiled C binary directly |
+
+### Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| Framework | Next.js 15 (App Router) |
+| Language | TypeScript |
+| Styling | Tailwind CSS v4 |
+| Icons | Lucide React |
+| API | `child_process.spawn` → PlumbrC binary |
+
 ## 🧪 Testing
 
 ```bash
@@ -321,7 +379,6 @@ plumbrC/
 │   ├── arena.c             # Arena memory allocator
 │   ├── io.c                # Buffered I/O
 │   ├── parallel.c          # Parallel processing
-│   ├── thread_pool.c       # Thread pool implementation
 │   ├── hwdetect.c          # Hardware detection
 │   └── libplumbr.c         # Library API
 ├── include/                # Header files
@@ -329,6 +386,15 @@ plumbrC/
 │   ├── libplumbr.h         # Library API
 │   ├── config.h            # Configuration constants
 │   └── ...                 # Internal headers
+├── web/                    # Next.js web application
+│   ├── app/
+│   │   ├── page.tsx        # Landing page
+│   │   ├── playground/     # Interactive playground
+│   │   ├── api/redact/     # REST API endpoint
+│   │   ├── layout.tsx      # Root layout
+│   │   └── globals.css     # Design system
+│   ├── package.json
+│   └── tsconfig.json
 ├── patterns/               # 702 secret detection patterns
 │   ├── all.txt             # All patterns combined
 │   ├── default.txt         # Default 42 patterns

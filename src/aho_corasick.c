@@ -217,6 +217,16 @@ void ac_search(const ACAutomaton *ac, const char *text, size_t len,
     int32_t next = ac->states[state].goto_table[c];
     state = (next != -1) ? next : 0;
 
+    /* Prefetch next state's goto_table to hide memory latency.
+     * Each ACState is ~1KB, so prefetching is critical for L1 hits. */
+    if (i + 1 < len) {
+      uint8_t next_c = (uint8_t)text[i + 1];
+      int32_t peek = ac->states[state].goto_table[next_c];
+      if (peek != -1) {
+        __builtin_prefetch(&ac->states[peek].goto_table, 0, 1);
+      }
+    }
+
     /* Report all matches at this position */
     int32_t match_state = state;
     while (match_state != 0) {

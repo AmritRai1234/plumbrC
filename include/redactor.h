@@ -7,6 +7,7 @@
 #define PLUMBR_REDACTOR_H
 
 #include <stdbool.h>
+#include <stdatomic.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -29,10 +30,10 @@ typedef struct {
   /* SECURITY: Match context with limits for ReDoS protection */
   pcre2_match_context *match_ctx;
 
-  /* Stats */
-  size_t lines_scanned;
-  size_t lines_modified;
-  size_t patterns_matched;
+  /* Stats (atomic for thread safety) */
+  _Atomic size_t lines_scanned;
+  _Atomic size_t lines_modified;
+  _Atomic size_t patterns_matched;
 } Redactor;
 
 /* Initialize redactor */

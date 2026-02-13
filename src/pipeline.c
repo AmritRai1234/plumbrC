@@ -10,7 +10,6 @@
 #include "patterns.h"
 #include "plumbr.h"
 #include "redactor.h"
-#include "thread_pool.h"
 
 #include <pthread.h>
 #include <stdio.h>
@@ -212,6 +211,10 @@ static int process_parallel_new(PlumbrContext *ctx, int num_threads) {
   }
 
 cleanup:
+  /* Aggregate parallel stats into the main redactor for reporting */
+  ctx->redactor->lines_modified += parallel_lines_modified(pctx);
+  ctx->redactor->patterns_matched += parallel_patterns_matched(pctx);
+
   for (size_t i = 0; i < BATCH_SIZE; i++) {
     free(outputs[i]);
     free(line_copies[i]);
@@ -225,118 +228,6 @@ cleanup:
 
   return result;
 }
-
-/*
- * Multi-threaded batch processing
- * NOTE: Currently disabled due to synchronization issues causing data loss.
- * TODO: Fix thread pool before re-enabling.
- */
-#if 0  /* DISABLED - sync issues */
-static int process_multi_threaded(PlumbrContext *ctx, int num_threads) {
-  /* Create thread pool */
-  ThreadPool *pool =
-      threadpool_create(num_threads, ctx->patterns, PLUMBR_MAX_LINE_SIZE);
-  if (!pool) {
-    fprintf(stderr, "Warning: Failed to create thread pool, falling back to "
-                    "single-threaded\n");
-    return process_single_threaded(ctx);
-  }
-
-  /* Allocate batch buffers */
-  WorkItem *batch = malloc(BATCH_SIZE * sizeof(WorkItem));
-  char **output_bufs = malloc(BATCH_SIZE * sizeof(char *));
-  char **input_copies = malloc(BATCH_SIZE * sizeof(char *));
-
-  if (!batch || !output_bufs || !input_copies) {
-    free(batch);
-    free(output_bufs);
-    free(input_copies);
-    threadpool_destroy(pool);
-    return process_single_threaded(ctx);
-  }
-
-  /* Initialize output buffers */
-  for (size_t i = 0; i < BATCH_SIZE; i++) {
-    output_bufs[i] = malloc(PLUMBR_MAX_LINE_SIZE);
-    input_copies[i] = malloc(PLUMBR_MAX_LINE_SIZE);
-    if (!output_bufs[i] || !input_copies[i]) {
-      for (size_t j = 0; j <= i; j++) {
-        free(output_bufs[j]);
-        free(input_copies[j]);
-      }
-      free(batch);
-      free(output_bufs);
-      free(input_copies);
-      threadpool_destroy(pool);
-      return process_single_threaded(ctx);
-    }
-  }
-
-  size_t batch_count = 0;
-  size_t line_len;
-  const char *line;
-  int result = 0;
-
-  while ((line = io_read_line(&ctx->io, &line_len)) != NULL) {
-    /* Copy input (needed because io buffer may be overwritten) */
-    if (line_len < PLUMBR_MAX_LINE_SIZE) {
-      memcpy(input_copies[batch_count], line, line_len + 1);
-    } else {
-      memcpy(input_copies[batch_count], line, PLUMBR_MAX_LINE_SIZE - 1);
-      input_copies[batch_count][PLUMBR_MAX_LINE_SIZE - 1] = '\0';
-      line_len = PLUMBR_MAX_LINE_SIZE - 1;
-    }
-
-    /* Setup work item */
-    batch[batch_count].input = input_copies[batch_count];
-    batch[batch_count].input_len = line_len;
-    batch[batch_count].output = output_bufs[batch_count];
-    batch[batch_count].output_cap = PLUMBR_MAX_LINE_SIZE;
-    batch[batch_count].output_len = 0;
-    batch[batch_count].modified = false;
-
-    batch_count++;
-
-    /* Process batch when full */
-    if (batch_count >= BATCH_SIZE) {
-      threadpool_process_batch(pool, batch, batch_count);
-
-      /* Write outputs in order */
-      for (size_t i = 0; i < batch_count; i++) {
-        if (!io_write_line(&ctx->io, batch[i].output, batch[i].output_len)) {
-          result = 1;
-          goto cleanup;
-        }
-      }
-      batch_count = 0;
-    }
-  }
-
-  /* Process remaining items */
-  if (batch_count > 0) {
-    threadpool_process_batch(pool, batch, batch_count);
-    for (size_t i = 0; i < batch_count; i++) {
-      if (!io_write_line(&ctx->io, batch[i].output, batch[i].output_len)) {
-        result = 1;
-        goto cleanup;
-      }
-    }
-  }
-
-cleanup:
-  /* Free buffers */
-  for (size_t i = 0; i < BATCH_SIZE; i++) {
-    free(output_bufs[i]);
-    free(input_copies[i]);
-  }
-  free(batch);
-  free(output_bufs);
-  free(input_copies);
-  threadpool_destroy(pool);
-
-  return result;
-}
-#endif /* DISABLED */
 
 int plumbr_process_fd(PlumbrContext *ctx, int in_fd, int out_fd) {
   /* Record start time */

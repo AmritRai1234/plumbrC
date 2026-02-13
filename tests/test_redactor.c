@@ -40,6 +40,14 @@
     }                                                                          \
   } while (0)
 
+#define ASSERT_TRUE(cond)                                                      \
+  do {                                                                         \
+    if (!(cond)) {                                                             \
+      fprintf(stderr, "\nFAIL: %s is false\n", #cond);                         \
+      exit(1);                                                                 \
+    }                                                                          \
+  } while (0)
+
 /* Test fixtures */
 static Arena test_arena;
 static PatternSet *test_patterns;
@@ -145,6 +153,44 @@ TEST(stats) {
   ASSERT_EQ(1, redactor_lines_modified(test_redactor));
 }
 
+TEST(overlapping_matches) {
+  /* Redact a line where patterns might overlap */
+  const char *input = "AKIAIOSFODNN7EXAMPLE password = AKIAABCDEFGH1234WXYZ";
+  size_t out_len;
+  const char *output =
+      redactor_process(test_redactor, input, strlen(input), &out_len);
+
+  /* Both AWS keys and password should be redacted */
+  ASSERT_TRUE(strstr(output, "AKIAIOSFODNN7EXAMPLE") == NULL);
+  ASSERT_TRUE(strstr(output, "AKIAABCDEFGH1234WXYZ") == NULL);
+}
+
+TEST(long_line) {
+  /* Test a line near the buffer size limit */
+  char long_line[4096];
+  memset(long_line, 'A', sizeof(long_line) - 1);
+  long_line[sizeof(long_line) - 1] = '\0';
+
+  size_t out_len;
+  const char *output =
+      redactor_process(test_redactor, long_line, strlen(long_line), &out_len);
+
+  /* Should pass through unmodified (no patterns match) */
+  ASSERT_EQ(strlen(long_line), out_len);
+}
+
+TEST(no_literal_match) {
+  /* Line that doesn't contain any pattern literals - should fast-path */
+  const char *input =
+      "2024-01-01 12:00:00 INFO Application started successfully";
+  size_t out_len;
+  const char *output =
+      redactor_process(test_redactor, input, strlen(input), &out_len);
+
+  ASSERT_STR_EQ(input, output);
+  ASSERT_EQ(strlen(input), out_len);
+}
+
 int main(void) {
   printf("Running redactor tests...\n");
 
@@ -157,6 +203,9 @@ int main(void) {
   RUN_TEST(multiple_patterns);
   RUN_TEST(empty_line);
   RUN_TEST(stats);
+  RUN_TEST(overlapping_matches);
+  RUN_TEST(long_line);
+  RUN_TEST(no_literal_match);
 
   teardown();
 

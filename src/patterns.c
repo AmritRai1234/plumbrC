@@ -131,10 +131,11 @@ bool patterns_load_file(PatternSet *ps, const char *filename) {
     }
 
     /* Parse: name|literal|regex|replacement */
-    char *name = strtok(start, "|");
-    char *literal = strtok(NULL, "|");
-    char *regex = strtok(NULL, "|");
-    char *replacement = strtok(NULL, "|");
+    char *saveptr;
+    char *name = strtok_r(start, "|", &saveptr);
+    char *literal = strtok_r(NULL, "|", &saveptr);
+    char *regex = strtok_r(NULL, "|", &saveptr);
+    char *replacement = strtok_r(NULL, "|", &saveptr);
 
     if (!name || !regex) {
       /* SECURITY: Only show basename to avoid path disclosure */
@@ -285,8 +286,9 @@ bool patterns_add_defaults(PatternSet *ps) {
   /* AWS Access Key */
   patterns_add(ps, "aws_access_key", "AKIA", "AKIA[0-9A-Z]{16}", NULL);
 
-  /* AWS Secret Key */
-  patterns_add(ps, "aws_secret_key", NULL, "[A-Za-z0-9/+=]{40}", NULL);
+  /* AWS Secret Key (requires prefix to avoid false positives) */
+  patterns_add(ps, "aws_secret_key", "aws_secret",
+               "aws_secret_access_key[\"'\\s:=]+[A-Za-z0-9/+=]{40}", NULL);
 
   /* GitHub Token */
   patterns_add(ps, "github_token", "ghp_", "ghp_[A-Za-z0-9]{36}", NULL);

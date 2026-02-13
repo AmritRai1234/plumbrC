@@ -94,8 +94,8 @@ static void *worker_func(void *arg) {
         w->outputs[i][out_len] = '\0';
         w->out_lengths[i] = out_len;
 
-        /* Track if modified */
-        if (out_len != len || memcmp(output, line, len) != 0) {
+        /* Track if modified - redactor returns input ptr when unchanged */
+        if (output != line) {
           w->lines_modified++;
         }
       } else {

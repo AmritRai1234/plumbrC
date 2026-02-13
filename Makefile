@@ -151,16 +151,24 @@ test-data:
 	@echo "Generated test_data/sample.log"
 
 # Build and run unit tests
-test-unit: debug $(BIN_DIR)/test_patterns $(BIN_DIR)/test_redactor
+test-unit: debug $(BIN_DIR)/test_patterns $(BIN_DIR)/test_redactor $(BIN_DIR)/test_libplumbr $(BIN_DIR)/test_io
 	@echo "Running unit tests..."
 	$(BIN_DIR)/test_patterns
 	$(BIN_DIR)/test_redactor
+	$(BIN_DIR)/test_libplumbr
+	$(BIN_DIR)/test_io
 
 # Build test executables
 $(BIN_DIR)/test_patterns: tests/test_patterns.c $(LIB_OBJS) | $(BIN_DIR)
 	$(CC) $(CFLAGS) -g -O0 $< $(LIB_OBJS) -o $@ $(LDFLAGS)
 
 $(BIN_DIR)/test_redactor: tests/test_redactor.c $(LIB_OBJS) | $(BIN_DIR)
+	$(CC) $(CFLAGS) -g -O0 $< $(LIB_OBJS) -o $@ $(LDFLAGS)
+
+$(BIN_DIR)/test_libplumbr: tests/test_libplumbr.c $(LIB_OBJS) | $(BIN_DIR)
+	$(CC) $(CFLAGS) -g -O0 $< $(LIB_OBJS) -o $@ $(LDFLAGS)
+
+$(BIN_DIR)/test_io: tests/test_io.c $(LIB_OBJS) | $(BIN_DIR)
 	$(CC) $(CFLAGS) -g -O0 $< $(LIB_OBJS) -o $@ $(LDFLAGS)
 
 $(BIN_DIR)/benchmark_suite: tests/benchmark.c $(LIB_OBJS) | $(BIN_DIR)

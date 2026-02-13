@@ -1,0 +1,154 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg: #141414;
+  --color-bg-raised: #1c1c1c;
+  --color-bg-elevated: #242424;
+  --color-border: #2e2e2e;
+  --color-border-light: #383838;
+  --color-text: #e8e8e8;
+  --color-text-secondary: #999999;
+  --color-text-tertiary: #666666;
+  --color-white: #ffffff;
+  --color-accent: #e8e8e8;
+  --color-redacted: #e05050;
+  --color-green: #4ade80;
+
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", "Fira Code", monospace;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+/* ── Card ── */
+.card {
+  background: var(--color-bg-raised);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  transition: border-color 0.2s ease;
+}
+
+.card:hover {
+  border-color: var(--color-border-light);
+}
+
+/* ── Navigation ── */
+.nav-bar {
+  background: rgba(20, 20, 20, 0.8);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--color-border);
+}
+
+/* ── Code block ── */
+.code-block {
+  background: #111111;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  font-family: var(--font-mono);
+}
+
+/* ── Terminal ── */
+.terminal {
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+}
+
+.terminal-header {
+  background: var(--color-bg-raised);
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.terminal-body {
+  background: #111111;
+  padding: 16px 20px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+/* ── Redacted tag ── */
+.redacted-tag {
+  color: var(--color-redacted);
+  font-weight: 600;
+}
+
+/* ── Section divider ── */
+.divider {
+  border-top: 1px solid var(--color-border);
+}
+
+/* ── Animations ── */
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.4s ease-out forwards;
+}
+
+@keyframes blink {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0;
+  }
+}
+
+.animate-blink {
+  animation: blink 1s step-end infinite;
+}
+
+@keyframes pulse-dot {
+
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+.animate-pulse-dot {
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-light);
+  border-radius: 10px;
+}
