@@ -45,7 +45,7 @@ dev = [
 ]
 
 [tool.setuptools]
-packages = ["plumbrc"]
+packages = ["plumbrc", "plumbrc.lib"]
 package-dir = {"" = "."}
 
 [tool.setuptools.package-data]

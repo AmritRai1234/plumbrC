@@ -14,10 +14,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install dependencies
+      - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libpcre2-dev gcc
+          sudo apt-get install -y libpcre2-dev gcc make
 
       - name: Build shared library
         run: make shared
@@ -28,14 +28,17 @@ jobs:
           python-version: '3.12'
 
       - name: Install build tools
-        run: pip install build
+        run: pip install build setuptools wheel
 
-      - name: Build package
+      - name: Prepare package
         working-directory: python
         run: |
           mkdir -p plumbrc/lib
           cp ../build/lib/libplumbr.so plumbrc/lib/
-          python -m build
+
+      - name: Build package
+        working-directory: python
+        run: python -m build --no-isolation
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
