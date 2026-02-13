@@ -1,7 +1,7 @@
 <p align="center">
-  <h1 align="center">🔧 PlumbrC</h1>
-  <p align="center"><strong>High-Performance Log Redaction Pipeline</strong></p>
-  <p align="center">Pure C implementation • 500K+ lines/sec • Zero-allocation hot path</p>
+  <h1 align="center">PlumbrC</h1>
+  <p align="center"><strong>High-Performance Log Redaction Engine</strong></p>
+  <p align="center">Pure C11 &bull; 2.6M lines/sec &bull; Zero-allocation hot path &bull; 702 patterns</p>
 </p>
 
 <p align="center">
@@ -9,36 +9,52 @@
   <img src="https://img.shields.io/badge/patterns-702-green.svg" alt="Patterns">
   <img src="https://img.shields.io/badge/license-Source%20Available-orange.svg" alt="License">
   <img src="https://img.shields.io/badge/python-pip%20install%20plumbrc-3776AB.svg?logo=python&logoColor=white" alt="Python">
-  <img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs Welcome">
   <a href="https://github.com/AmritRai1234/plumbrC/discussions"><img src="https://img.shields.io/badge/discussions-join-blue.svg?logo=github" alt="Discussions"></a>
 </p>
 
 ---
 
-## ✨ Features
+PlumbrC is a high-performance log redaction engine written in C11 that detects and removes secrets from log streams in real time. It uses a two-phase matching pipeline — Aho-Corasick literal scan followed by PCRE2 JIT regex verification — to achieve throughput exceeding 2.6 million lines per second on commodity hardware.
 
-- **🚀 Blazing Fast** — Two-phase matching with Aho-Corasick literal scan + PCRE2 regex verification
-- **💾 Zero-Allocation Hot Path** — Arena-based memory with no malloc in processing loop  
-- **🔗 Pipeline-Friendly** — Designed for Unix stdin/stdout chaining
-- **📦 702 Built-in Patterns** — Comprehensive secret detection (AWS, GCP, Stripe, GitHub, etc.)
-- **🔒 Security-First** — Bounds checking, input validation, ReDoS protection, sanitizer-ready
-- **⚡ Parallel Processing** — Multi-threaded support for maximum throughput
-- **📚 Library API** — Embed redaction directly in your applications
+**Website**: [plumbr.ca](https://plumbr.ca) | **Developer Portal**: [plumbr.ca/developers](https://plumbr.ca/developers) | **Playground**: [plumbr.ca/playground](https://plumbr.ca/playground)
 
-## 🚀 Quick Start
+---
+
+## Table of Contents
+
+- [Quick Start](#quick-start)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Pattern Library](#pattern-library)
+- [Architecture](#architecture)
+- [Library API](#library-api)
+- [Python Package](#python-package)
+- [REST API](#rest-api)
+- [Web Application](#web-application)
+- [Developer Portal](#developer-portal)
+- [Testing](#testing)
+- [Performance](#performance)
+- [Project Structure](#project-structure)
+- [Dependencies](#dependencies)
+- [License](#license)
+- [Contributing](#contributing)
+
+---
+
+## Quick Start
 
 ```bash
 # Build
 make
 
-# Run
+# Redact a log file
 ./build/bin/plumbr < app.log > redacted.log
 
-# Pipeline usage
+# Real-time pipeline
 tail -f /var/log/app.log | ./build/bin/plumbr | tee redacted.log
 ```
 
-## 📦 Installation
+## Installation
 
 ### From Source
 
@@ -49,34 +65,24 @@ sudo apt install build-essential libpcre2-dev
 # Build optimized release
 make
 
-# Install to /usr/local/bin
+# Install system-wide
 sudo make install
+```
+
+### Python
+
+```bash
+pip install plumbrc
 ```
 
 ### Docker
 
 ```bash
-# Build image
 docker build -t plumbrc -f integrations/docker/Dockerfile .
-
-# Run
 docker run -i plumbrc < input.log > output.log
 ```
 
-## 🛠️ Build Options
-
-| Command | Description |
-|---------|-------------|
-| `make` | Optimized release build (-O3, LTO) |
-| `make debug` | Debug build with symbols |
-| `make sanitize` | Build with AddressSanitizer/UBSan |
-| `make profile` | Build for gprof profiling |
-| `make lib` | Build static library (libplumbr.a) |
-| `make shared` | Build shared library (libplumbr.so) |
-| `make benchmark` | Run performance benchmark |
-| `make test` | Run basic functionality test |
-
-## 📖 Usage
+## Usage
 
 ```
 plumbr [OPTIONS] < input > output
@@ -102,7 +108,7 @@ Options:
 # Use custom patterns
 ./plumbr -p custom.txt < app.log > redacted.log
 
-# Load AWS-specific patterns
+# Load category-specific patterns
 ./plumbr -p patterns/cloud/aws.txt < app.log > redacted.log
 
 # Combine defaults with extra patterns
@@ -115,7 +121,39 @@ Options:
 tail -f /var/log/app.log | ./plumbr | tee redacted.log
 ```
 
-## 📋 Pattern Format
+## Build Options
+
+| Command | Description |
+|---------|-------------|
+| `make` | Optimized release build (-O3, LTO) |
+| `make debug` | Debug build with symbols |
+| `make sanitize` | Build with AddressSanitizer/UBSan |
+| `make profile` | Build for gprof profiling |
+| `make lib` | Build static library (libplumbr.a) |
+| `make shared` | Build shared library (libplumbr.so) |
+| `make benchmark` | Run performance benchmark |
+| `make test` | Run functionality tests |
+
+## Pattern Library
+
+PlumbrC ships with **702 patterns** organized by category:
+
+| Category | Patterns | Coverage |
+|----------|----------|----------|
+| Cloud | 109 | AWS, GCP, Azure, DigitalOcean, Heroku, Alibaba, Oracle |
+| Communication | 127 | Slack, Discord, Telegram, Twilio, SendGrid, Mailgun |
+| Payment | 79 | Stripe, Square, PayPal, Braintree, Adyen, Checkout.com |
+| VCS | 63 | GitHub, GitLab, Bitbucket |
+| Infrastructure | 72 | Docker, NPM, PyPI, CI/CD pipelines |
+| Crypto | 54 | SSH, SSL/TLS, PGP, JWT |
+| Secrets | 52 | Generic API keys, passwords, tokens |
+| Social | 50 | Facebook, Twitter, LinkedIn, YouTube, TikTok |
+| Database | 42 | PostgreSQL, MongoDB, MySQL, Redis |
+| Analytics | 30 | Google Analytics, Mixpanel, Amplitude, Segment |
+| PII | 14 | Email, SSN, phone numbers, IP addresses |
+| Auth | 10 | JWT, OAuth, Bearer tokens |
+
+### Pattern Format
 
 Patterns are defined in text files with one pattern per line:
 
@@ -138,44 +176,16 @@ password|password|password[=:]\s*\S+|[REDACTED:password]
 github_token|ghp_|ghp_[A-Za-z0-9]{36}|[REDACTED:github_token]
 ```
 
-## 📁 Pattern Library
-
-PlumbrC includes **702 patterns** organized by category:
-
-| Category | Patterns | Coverage |
-|----------|----------|----------|
-| Cloud | 109 | AWS, GCP, Azure, DigitalOcean, Heroku, Alibaba, Oracle |
-| Communication | 127 | Slack, Discord, Telegram, Twilio, SendGrid, Mailgun |
-| Payment | 79 | Stripe, Square, PayPal, Braintree, Adyen, Checkout.com |
-| VCS | 63 | GitHub, GitLab, Bitbucket |
-| Infrastructure | 72 | Docker, NPM, PyPI, CI/CD pipelines |
-| Crypto | 54 | SSH, SSL/TLS, PGP, JWT |
-| Secrets | 52 | Generic API keys, passwords, tokens |
-| Social | 50 | Facebook, Twitter, LinkedIn, YouTube, TikTok |
-| Database | 42 | PostgreSQL, MongoDB, MySQL, Redis |
-| Analytics | 30 | Google Analytics, Mixpanel, Amplitude, Segment |
-| PII | 14 | Email, SSN, phone numbers, IP addresses |
-| Auth | 10 | JWT, OAuth, Bearer tokens |
-
-```bash
-# Load all patterns
-./plumbr -p patterns/all.txt
-
-# Load specific category
-./plumbr -p patterns/cloud/aws.txt
-./plumbr -p patterns/payment/stripe.txt
-```
-
-## ⚙️ Architecture
+## Architecture
 
 ```
-stdin → [Read Buffer 64KB] → [Line Parser] → [Aho-Corasick] → [PCRE2 Verify] → [Redact] → [Write Buffer 64KB] → stdout
+stdin -> [Read Buffer 64KB] -> [Line Parser] -> [Aho-Corasick] -> [PCRE2 Verify] -> [Redact] -> [Write Buffer 64KB] -> stdout
 ```
 
 ### Two-Phase Matching
 
-1. **Phase 1: Aho-Corasick** — O(n) scan for all pattern literals simultaneously
-2. **Phase 2: PCRE2 JIT** — Regex verification only on lines with literal matches (~1-5% of traffic)
+1. **Phase 1: Aho-Corasick** -- O(n) scan for all pattern literals simultaneously
+2. **Phase 2: PCRE2 JIT** -- Regex verification only on lines with literal matches (~1-5% of traffic)
 
 ### Performance Optimizations
 
@@ -188,7 +198,7 @@ stdin → [Read Buffer 64KB] → [Line Parser] → [Aho-Corasick] → [PCRE2 Ver
 | Vectorized writes | writev() for batch output |
 | ReDoS protection | Match limits prevent catastrophic backtracking |
 
-## 📚 Library API
+## Library API
 
 Embed log redaction directly into your application:
 
@@ -198,27 +208,27 @@ Embed log redaction directly into your application:
 int main(void) {
     // Create instance with default patterns
     libplumbr_t *p = libplumbr_new(NULL);
-    
+
     // Redact a line
     size_t out_len;
     char *safe = libplumbr_redact(p, "api_key=secret123", 17, &out_len);
     printf("%s\n", safe);  // "api_key=[REDACTED:api_key]"
     free(safe);
-    
+
     // Batch processing
     const char *inputs[] = {"line1", "line2"};
     size_t lens[] = {5, 5};
     char *outputs[2];
     size_t out_lens[2];
     libplumbr_redact_batch(p, inputs, lens, outputs, out_lens, 2);
-    
+
     // Cleanup
     libplumbr_free(p);
     return 0;
 }
 ```
 
-### API Functions
+### API Reference
 
 | Function | Description |
 |----------|-------------|
@@ -230,60 +240,104 @@ int main(void) {
 | `libplumbr_pattern_count()` | Get number of loaded patterns |
 | `libplumbr_free()` | Free instance |
 
-### Building with Library
+### Linking
 
 ```bash
-# Build static library
+# Static library
 make lib
-
-# Compile with static library
 gcc -I./include example.c -L./build/lib -lplumbr -lpcre2-8 -o example
 
-# Build shared library
+# Shared library
 make shared
-
-# Compile with shared library
 gcc -I./include example.c -L./build/lib -lplumbr -lpcre2-8 -Wl,-rpath,./build/lib -o example
 ```
 
-## 🔌 Integrations
+## Python Package
 
-Ready-to-use configurations for popular log pipelines:
-
-| Platform | Location | Description |
-|----------|----------|-------------|
-| Docker | `integrations/docker/` | Dockerfile, docker-compose examples |
-| Kubernetes | `integrations/kubernetes/` | Sidecar, DaemonSet, init container configs |
-| Fluentd | `integrations/fluentd/` | Filter plugin configuration |
-| Logstash | `integrations/logstash/` | Pipeline filter configuration |
-| Vector | `integrations/vector/` | Transform configuration |
-| systemd | `integrations/systemd/` | Service unit files |
-
-### Usage Patterns
+Install the Python wrapper from PyPI:
 
 ```bash
-# 1. Pipe Mode
-your-app | plumbr | destination
-
-# 2. File Mode
-plumbr < input.log > output.log
-
-# 3. Sidecar Mode (Kubernetes)
-# See integrations/kubernetes/
-
-# 4. DaemonSet Mode (Kubernetes)
-# See integrations/kubernetes/
+pip install plumbrc
 ```
 
-## 🌐 Web Application
+```python
+from plumbrc import Plumbr
 
-PlumbrC ships with a full web interface built on **Next.js + TypeScript**:
+# Basic usage
+p = Plumbr()
+result = p.redact("password=secret123")
+print(result)  # "password=[REDACTED:password]"
 
-- **Landing Page** — Product overview, feature showcase, and live typing demo
-- **Interactive Playground** — Paste logs and see redaction in real-time
-- **REST API** — Programmatic access to the C engine over HTTP
+# Context manager
+with Plumbr() as p:
+    safe = p.redact("key=AKIAIOSFODNN7EXAMPL3")
+    print(safe)  # "key=[REDACTED:aws_key]"
 
-### Setup
+# Batch processing
+results = p.redact_batch([
+    "aws_key=AKIAIOSFODNN7EXAMPL3",
+    "password=hunter2",
+    "This line is safe"
+])
+
+# Statistics
+stats = p.stats()
+print(f"Lines processed: {stats['lines_processed']}")
+print(f"Patterns matched: {stats['patterns_matched']}")
+```
+
+### Performance
+
+- **71,000+ lines/sec** throughput
+- **13.9 microseconds** latency per line
+- Zero external dependencies
+
+## REST API
+
+Authenticate with your API key. Send text, get clean text back.
+
+```
+POST /api/redact
+```
+
+```bash
+curl -X POST https://plumbr.ca/api/redact \
+  -H "Authorization: Bearer plumbr_live_xxx" \
+  -H "Content-Type: application/json" \
+  -d '{"text": "key=AKIAIOSFODNN7EXAMPL3"}'
+```
+
+Response:
+
+```json
+{
+  "redacted": "key=[REDACTED:aws_access_key]",
+  "stats": {
+    "lines_modified": 1,
+    "patterns_matched": 1
+  }
+}
+```
+
+| Detail | Value |
+|--------|-------|
+| Authentication | API key (Bearer token) |
+| Processing | Sub-millisecond (C engine) |
+| Storage | Ephemeral -- nothing is saved |
+| Rate limit | 1,000 requests/min (default) |
+
+Get your API key at [plumbr.ca/developers](https://plumbr.ca/developers).
+
+## Web Application
+
+PlumbrC includes a full web interface built on Next.js:
+
+- **Landing Page** -- Product overview and live demo
+- **Playground** -- Paste logs and see redaction in real time
+- **Developer Portal** -- Create accounts, register apps, manage API keys
+- **Community** -- Contribution guides and community resources
+
+### Local Development
 
 ```bash
 cd web
@@ -292,138 +346,112 @@ npm run dev
 # Open http://localhost:3000
 ```
 
-### REST API
-
-**`POST /api/redact`** — Redact secrets from text.
-
-```bash
-curl -X POST http://localhost:3000/api/redact \
-  -H "Content-Type: application/json" \
-  -d '{"text": "key=AKIAIOSFODNN7EXAMPL3 password=secret"}'
-```
-
-**Response:**
-
-```json
-{
-  "redacted": "key=[REDACTED:aws_access_key] [REDACTED:password]",
-  "stats": {
-    "lines_processed": 1,
-    "lines_modified": 1,
-    "patterns_matched": 2,
-    "processing_time_ms": 51.2
-  }
-}
-```
-
-| Detail | Value |
-|--------|-------|
-| Input limit | 1 MB |
-| Auth | None (open) |
-| Storage | Ephemeral — nothing is saved |
-| Engine | Calls the compiled C binary directly |
-
 ### Tech Stack
 
 | Layer | Technology |
 |-------|------------|
-| Framework | Next.js 15 (App Router) |
+| Framework | Next.js 16 (App Router) |
 | Language | TypeScript |
 | Styling | Tailwind CSS v4 |
+| Database | SQLite (better-sqlite3) |
+| Auth | JWT (jose) |
 | Icons | Lucide React |
-| API | `child_process.spawn` → PlumbrC binary |
 
-## 🧪 Testing
+## Developer Portal
+
+The developer portal at [plumbr.ca/developers](https://plumbr.ca/developers) provides:
+
+- **Account creation** -- Sign up with email and password
+- **App registration** -- Create up to 5 apps per account
+- **API key management** -- Generate, view, regenerate, and revoke keys
+- **Key format** -- `plumbr_live_xxx` (public) / `plumbr_secret_xxx` (private)
+
+## Testing
 
 ```bash
-# Quick functionality test
+# Functionality tests
 make test
 
-# Build and run unit tests
+# Unit tests
 make test-unit
 
-# Run benchmark
+# Benchmark
 make benchmark
 
-# Run with sanitizers
+# Sanitizer checks
 make sanitize
 ./build/bin/plumbr < test_data/sample.log > /dev/null
 ```
 
-## 📊 Performance
+## Performance
 
-Targeting **500K+ lines/second** on modern hardware.
+Benchmarked at **2.6M lines/sec** on modern hardware (single-threaded).
 
 ```bash
-# Generate test data
 make test-data
-
-# Run benchmark
 make benchmark
 ```
 
-### Benchmark Results
+| Metric | Result |
+|--------|--------|
+| Throughput | 2.6M lines/sec |
+| Latency | Sub-microsecond per line |
+| Scaling | Near-linear with threads |
+| Memory | Zero allocations in hot path |
 
-Test on representative data shows:
-- **High throughput**: ~500K lines/sec single-threaded
-- **Low latency**: Sub-microsecond per line
-- **Linear scaling**: Near-linear with parallel threads
-
-## 🏗️ Project Structure
+## Project Structure
 
 ```
 plumbrC/
-├── src/                    # Source files
-│   ├── main.c              # CLI entry point
-│   ├── pipeline.c          # Processing pipeline
-│   ├── aho_corasick.c      # Multi-pattern matching
-│   ├── redactor.c          # Two-phase redaction engine
-│   ├── patterns.c          # Pattern management
-│   ├── arena.c             # Arena memory allocator
-│   ├── io.c                # Buffered I/O
-│   ├── parallel.c          # Parallel processing
-│   ├── hwdetect.c          # Hardware detection
-│   └── libplumbr.c         # Library API
-├── include/                # Header files
-│   ├── plumbr.h            # Public CLI API
-│   ├── libplumbr.h         # Library API
-│   ├── config.h            # Configuration constants
-│   └── ...                 # Internal headers
-├── web/                    # Next.js web application
-│   ├── app/
-│   │   ├── page.tsx        # Landing page
-│   │   ├── playground/     # Interactive playground
-│   │   ├── api/redact/     # REST API endpoint
-│   │   ├── layout.tsx      # Root layout
-│   │   └── globals.css     # Design system
-│   ├── package.json
-│   └── tsconfig.json
-├── patterns/               # 702 secret detection patterns
-│   ├── all.txt             # All patterns combined
-│   ├── default.txt         # Default 42 patterns
-│   ├── cloud/              # AWS, GCP, Azure patterns
-│   ├── payment/            # Stripe, PayPal patterns
-│   └── ...                 # More categories
-├── integrations/           # Deployment configs
-│   ├── docker/
-│   ├── kubernetes/
-│   ├── fluentd/
-│   └── ...
-├── tests/                  # Test files
-│   ├── test_patterns.c
-│   ├── test_redactor.c
-│   └── benchmark.c
-├── examples/               # Usage examples
-│   ├── c/example.c
-│   └── python/example.py
-├── Makefile
-└── README.md
+  src/                      Source files
+    main.c                  CLI entry point
+    pipeline.c              Processing pipeline
+    aho_corasick.c          Multi-pattern matching
+    redactor.c              Two-phase redaction engine
+    patterns.c              Pattern management
+    arena.c                 Arena memory allocator
+    io.c                    Buffered I/O
+    parallel.c              Parallel processing
+    libplumbr.c             Library API
+  include/                  Header files
+  web/                      Next.js web application
+    app/
+      page.tsx              Landing page
+      playground/           Interactive playground
+      developers/           Developer portal
+      community/            Community page
+      api/                  REST API endpoints
+      lib/                  Database and auth utilities
+  python/                   Python package (plumbrc)
+    plumbrc/                Package source
+    tests/                  Unit and performance tests
+    pyproject.toml          Package configuration
+  patterns/                 702 secret detection patterns
+    all.txt                 All patterns combined
+    default.txt             Default 42 patterns
+    cloud/                  AWS, GCP, Azure
+    payment/                Stripe, PayPal
+  integrations/             Deployment configs
+    docker/
+    kubernetes/
+    fluentd/
+    logstash/
+    vector/
+    systemd/
+  .github/                  Community health files
+    CONTRIBUTING.md
+    CODE_OF_CONDUCT.md
+    SECURITY.md
+    workflows/              CI/CD pipelines
+  Makefile
+  Dockerfile
+  README.md
 ```
 
-## 🔧 Dependencies
+## Dependencies
 
-- **GCC or Clang** — C11 compiler
-- **PCRE2** — Perl Compatible Regular Expressions
+- **GCC or Clang** -- C11 compiler
+- **PCRE2** -- Perl Compatible Regular Expressions
 
 ```bash
 # Debian/Ubuntu
@@ -436,23 +464,17 @@ brew install pcre2
 sudo dnf install gcc pcre2-devel
 ```
 
-## 📄 License
+## License
 
-**Source Available License** — Free for non-commercial use, commercial license required for business use.
+**Source Available License** -- Free for non-commercial use. Commercial license required for business use.
 
-### Free for:
-- Personal projects
-- Educational purposes
-- Academic research
-- Non-profit organizations
-- Open source projects (non-commercial)
+Free for personal projects, educational purposes, academic research, non-profit organizations, and non-commercial open source projects.
 
-### Commercial Use:
-Requires a paid license. See [LICENSE](LICENSE) for details and contact information.
+Commercial use requires a paid license. See [LICENSE](LICENSE) for details.
 
-## 🤝 Contributing
+## Contributing
 
-Contributions are welcome! By contributing, you agree that your contributions will be licensed under the same Source Available License.
+Contributions are welcome. Please read [CONTRIBUTING.md](.github/CONTRIBUTING.md) before submitting a pull request.
 
 1. Fork the repository
 2. Create a feature branch
@@ -460,14 +482,15 @@ Contributions are welcome! By contributing, you agree that your contributions wi
 4. Run tests: `make sanitize && make test`
 5. Submit a pull request
 
-## 📞 Support
+## Support
 
-- **Issues**: Open a GitHub issue for bugs or feature requests
-- **Commercial Licensing**: See [LICENSE](LICENSE) for contact information
-- **Documentation**: See `patterns/README.md` for pattern library documentation
+- **Issues**: [GitHub Issues](https://github.com/AmritRai1234/plumbrC/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/AmritRai1234/plumbrC/discussions)
+- **Security**: [Security Policy](.github/SECURITY.md)
+- **Commercial Licensing**: See [LICENSE](LICENSE)
 
 ---
 
 <p align="center">
-  <strong>PlumbrC</strong> — Protect your logs. Protect your secrets.
+  <strong>PlumbrC</strong> -- Protect your logs. Protect your secrets.
 </p>
