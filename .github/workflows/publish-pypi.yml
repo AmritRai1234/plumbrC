@@ -36,9 +36,9 @@ jobs:
           mkdir -p plumbrc/lib
           cp ../build/lib/libplumbr.so plumbrc/lib/
 
-      - name: Build package
+      - name: Build sdist
         working-directory: python
-        run: python -m build --no-isolation
+        run: python -m build --sdist --no-isolation
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
