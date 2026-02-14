@@ -23,16 +23,27 @@ typedef struct ACState {
   bool is_final;                    /* True if accepting state */
 } ACState;
 
+/* Compact match metadata — cold path, only accessed on matches */
+typedef struct {
+  int32_t output;      /* Output link for chained matches */
+  uint32_t pattern_id; /* Pattern ID if final state */
+  uint16_t depth;      /* Pattern length */
+  bool is_final;       /* True if accepting state */
+} ACMeta;
+
 struct ACAutomaton {
-  ACState *states;
+  ACState *states; /* Build-time state array (dense goto_table) */
   size_t num_states;
   size_t capacity;
   size_t num_patterns;
   bool built;
   Arena *arena;
   /* Runtime prefetch tuning (set by hwdetect) */
-  int prefetch_distance; /* How many bytes ahead to prefetch; default=1 */
-  int prefetch_hint;     /* 0=L1 (_MM_HINT_T0), 1=L2 (_MM_HINT_T1) */
+  int prefetch_distance;
+  int prefetch_hint;
+  /* Flat DFA table — hot path, built after ac_build */
+  int16_t *dfa; /* dfa[state * 256 + c] = next state (flat array) */
+  ACMeta *meta; /* meta[state] = match metadata (compact) */
 };
 
 /* Queue for BFS during build */
@@ -202,6 +213,28 @@ bool ac_build(ACAutomaton *ac) {
     }
   }
 
+  /* Step 3: Build flat DFA table + compact metadata.
+   * Separates hot data (transitions) from cold data (match info)
+   * for optimal cache utilization. */
+  size_t ns = ac->num_states;
+  ac->dfa = arena_alloc(ac->arena, ns * AC_ALPHABET_SIZE * sizeof(int16_t));
+  ac->meta = arena_alloc(ac->arena, ns * sizeof(ACMeta));
+  if (!ac->dfa || !ac->meta)
+    return false;
+
+  for (size_t s = 0; s < ns; s++) {
+    /* Copy transitions to flat DFA (int32_t → int16_t) */
+    int16_t *row = &ac->dfa[s * AC_ALPHABET_SIZE];
+    for (int c = 0; c < AC_ALPHABET_SIZE; c++) {
+      row[c] = (int16_t)ac->states[s].goto_table[c];
+    }
+    /* Copy match metadata */
+    ac->meta[s].output = ac->states[s].output;
+    ac->meta[s].pattern_id = ac->states[s].pattern_id;
+    ac->meta[s].depth = ac->states[s].depth;
+    ac->meta[s].is_final = ac->states[s].is_final;
+  }
+
   ac->built = true;
   return true;
 }
@@ -212,32 +245,34 @@ void ac_set_prefetch(ACAutomaton *ac, int distance, int hint) {
 }
 
 /*
- * Inner search loop macro — DFA-complete, zero failure link chasing.
- * Every goto_table[c] is valid after ac_build DFA completion.
+ * Inner search loop macro — uses flat DFA table for cache-optimal transitions.
+ * dfa[state * 256 + c] = next state (int16_t, contiguous memory).
+ * Match metadata in separate cold array, only touched on actual matches.
  * LOCALITY is a compile-time constant (3=L1, 1=L2).
  */
 #define AC_SEARCH_LOOP(ac, text, len, callback, user_data, pf_dist, LOCALITY)  \
   do {                                                                         \
-    int32_t state = 0;                                                         \
+    const int16_t *dfa = (ac)->dfa;                                            \
+    const ACMeta *meta = (ac)->meta;                                           \
+    int16_t state = 0;                                                         \
     for (size_t i = 0; i < (len); i++) {                                       \
       uint8_t c = (uint8_t)(text)[i];                                          \
-      state = (ac)->states[state].goto_table[c]; /* single lookup, no chase */ \
+      state = dfa[state * AC_ALPHABET_SIZE + c]; /* flat array lookup */       \
       if (i + (pf_dist) < (len)) {                                             \
         uint8_t fc = (uint8_t)(text)[i + (pf_dist)];                           \
-        int32_t pk = (ac)->states[state].goto_table[fc];                       \
-        __builtin_prefetch(&(ac)->states[pk].goto_table, 0, LOCALITY);         \
+        __builtin_prefetch(&dfa[state * AC_ALPHABET_SIZE + fc], 0, LOCALITY);  \
       }                                                                        \
-      int32_t ms = state;                                                      \
+      int16_t ms = state;                                                      \
       while (ms != 0) {                                                        \
-        if ((ac)->states[ms].is_final) {                                       \
+        if (meta[ms].is_final) {                                               \
           ACMatch m;                                                           \
           m.position = i;                                                      \
-          m.pattern_id = (ac)->states[ms].pattern_id;                          \
-          m.length = (ac)->states[ms].depth;                                   \
+          m.pattern_id = meta[ms].pattern_id;                                  \
+          m.length = meta[ms].depth;                                           \
           if (!(callback)(&m, (user_data)))                                    \
             return;                                                            \
         }                                                                      \
-        ms = (ac)->states[ms].output;                                          \
+        ms = (int16_t)meta[ms].output;                                         \
       }                                                                        \
     }                                                                          \
   } while (0)
@@ -264,28 +299,24 @@ bool ac_search_first(const ACAutomaton *ac, const char *text, size_t len,
     return false;
   }
 
-  int32_t state = 0;
+  const int16_t *dfa = ac->dfa;
+  const ACMeta *meta = ac->meta;
+  int16_t state = 0;
 
   for (size_t i = 0; i < len; i++) {
     uint8_t c = (uint8_t)text[i];
-
-    while (state != 0 && ac->states[state].goto_table[c] == -1) {
-      state = ac->states[state].fail;
-    }
-
-    int32_t next = ac->states[state].goto_table[c];
-    state = (next != -1) ? next : 0;
+    state = dfa[state * AC_ALPHABET_SIZE + c];
 
     /* Check for match */
-    int32_t match_state = state;
+    int16_t match_state = state;
     while (match_state != 0) {
-      if (ac->states[match_state].is_final) {
+      if (meta[match_state].is_final) {
         out_match->position = i;
-        out_match->pattern_id = ac->states[match_state].pattern_id;
-        out_match->length = ac->states[match_state].depth;
+        out_match->pattern_id = meta[match_state].pattern_id;
+        out_match->length = meta[match_state].depth;
         return true;
       }
-      match_state = ac->states[match_state].output;
+      match_state = (int16_t)meta[match_state].output;
     }
   }
 
