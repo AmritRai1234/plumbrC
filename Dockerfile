@@ -40,8 +40,9 @@ RUN npm run build
 # ============================================
 FROM node:20-alpine AS runner
 
-# Install PCRE2 runtime + libc compatibility + nginx + gRPC runtime
-RUN apk add --no-cache pcre2 libstdc++ nginx grpc-cpp libprotobuf
+# Install PCRE2 runtime + libc compatibility + nginx
+# Note: gRPC shared libs are copied from builder to guarantee ABI match
+RUN apk add --no-cache pcre2 libstdc++ nginx libgcc c-ares-libs
 
 WORKDIR /app
 
@@ -50,6 +51,16 @@ COPY --from=c-builder /app/build/bin/plumbr ./build/bin/plumbr
 COPY --from=c-builder /app/build/bin/plumbr-server ./build/bin/plumbr-server
 COPY --from=c-builder /app/build/bin/plumbr-grpc ./build/bin/plumbr-grpc
 RUN chmod +x ./build/bin/plumbr ./build/bin/plumbr-server ./build/bin/plumbr-grpc
+
+# Copy gRPC/protobuf shared libraries from builder to guarantee exact ABI match
+COPY --from=c-builder /usr/lib/libgrpc*.so* /usr/lib/
+COPY --from=c-builder /usr/lib/libgpr.so* /usr/lib/
+COPY --from=c-builder /usr/lib/libprotobuf.so* /usr/lib/
+COPY --from=c-builder /usr/lib/libupb*.so* /usr/lib/
+COPY --from=c-builder /usr/lib/libaddress_sorting.so* /usr/lib/
+COPY --from=c-builder /usr/lib/libre2.so* /usr/lib/
+COPY --from=c-builder /usr/lib/libabsl*.so* /usr/lib/
+RUN ldconfig /usr/lib 2>/dev/null || true
 
 # Copy pattern files
 COPY --from=c-builder /app/patterns/ ./patterns/
