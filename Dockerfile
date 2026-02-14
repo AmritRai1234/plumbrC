@@ -42,7 +42,7 @@ FROM node:20-alpine AS runner
 
 # Install PCRE2 runtime + libc compatibility + nginx
 # Note: gRPC shared libs are copied from builder to guarantee ABI match
-RUN apk add --no-cache pcre2 libstdc++ nginx libgcc c-ares-libs
+RUN apk add --no-cache pcre2 libstdc++ nginx libgcc
 
 WORKDIR /app
 
