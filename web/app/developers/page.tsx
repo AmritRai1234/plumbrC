@@ -14,6 +14,11 @@ import {
     Terminal,
     Lock,
     Rocket,
+    Cpu,
+    Package,
+    Globe,
+    AlertTriangle,
+    ChevronRight,
 } from "lucide-react";
 
 export default function DevelopersPage() {
@@ -64,8 +69,8 @@ export default function DevelopersPage() {
         },
         {
             icon: <Zap size={18} />,
-            title: "High Performance",
-            desc: "71K+ lines/sec throughput via the C engine.",
+            title: "5M+ Lines/sec",
+            desc: "Native C engine with AVX2 SIMD. AMD Ryzen optimized.",
         },
         {
             icon: <Shield size={18} />,
@@ -79,13 +84,13 @@ export default function DevelopersPage() {
         },
         {
             icon: <Code2 size={18} />,
-            title: "SDKs & Docs",
-            desc: "Python package, REST API, and comprehensive docs.",
+            title: "3 Ways to Use",
+            desc: "Native C binary, Python package, or REST API.",
         },
         {
             icon: <Lock size={18} />,
-            title: "Rate Limiting",
-            desc: "1,000 req/min default. Contact us for higher limits.",
+            title: "Open Source",
+            desc: "MIT licensed. Full source on GitHub. No vendor lock-in.",
         },
     ];
 
@@ -166,8 +171,8 @@ export default function DevelopersPage() {
                                     <button
                                         onClick={() => { setTab("signup"); setError(""); }}
                                         className={`flex-1 text-[13px] font-medium py-2 rounded-md transition-colors ${tab === "signup"
-                                                ? "bg-[var(--color-bg)] text-[var(--color-text)] shadow-sm"
-                                                : "text-[var(--color-text-secondary)] hover:text-[var(--color-text)]"
+                                            ? "bg-[var(--color-bg)] text-[var(--color-text)] shadow-sm"
+                                            : "text-[var(--color-text-secondary)] hover:text-[var(--color-text)]"
                                             }`}
                                     >
                                         Create Account
@@ -175,8 +180,8 @@ export default function DevelopersPage() {
                                     <button
                                         onClick={() => { setTab("login"); setError(""); }}
                                         className={`flex-1 text-[13px] font-medium py-2 rounded-md transition-colors ${tab === "login"
-                                                ? "bg-[var(--color-bg)] text-[var(--color-text)] shadow-sm"
-                                                : "text-[var(--color-text-secondary)] hover:text-[var(--color-text)]"
+                                            ? "bg-[var(--color-bg)] text-[var(--color-text)] shadow-sm"
+                                            : "text-[var(--color-text-secondary)] hover:text-[var(--color-text)]"
                                             }`}
                                     >
                                         Sign In
@@ -252,6 +257,110 @@ export default function DevelopersPage() {
                                     </a>
                                 </p>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Performance Guidance Section */}
+            <div className="px-6 pb-20">
+                <div className="max-w-5xl mx-auto">
+                    <div className="text-center mb-12">
+                        <h2 className="text-2xl sm:text-3xl font-bold tracking-tight mb-3">Choose Your Integration</h2>
+                        <p className="text-[var(--color-text-secondary)] text-[15px] max-w-lg mx-auto">We believe in being honest about performance. Here&apos;s what to expect from each option.</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {/* Native C */}
+                        <div className="card p-6 relative overflow-hidden">
+                            <div className="absolute top-3 right-3">
+                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: '#e8e8e8', color: '#141414' }}>RECOMMENDED</span>
+                            </div>
+                            <div className="flex items-center gap-2.5 mb-4">
+                                <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: 'rgba(232,232,232,0.1)', border: '1px solid var(--color-border)' }}>
+                                    <Cpu size={18} />
+                                </div>
+                                <div>
+                                    <h3 className="text-[15px] font-semibold">Native C Binary</h3>
+                                    <span className="text-[11px] text-[var(--color-text-tertiary)]">Maximum performance</span>
+                                </div>
+                            </div>
+                            <div className="text-2xl font-bold mb-1" style={{ color: '#e8e8e8' }}>5M+ <span className="text-sm font-normal text-[var(--color-text-secondary)]">lines/sec</span></div>
+                            <p className="text-[12px] text-[var(--color-text-tertiary)] mb-4">364 MB/s throughput</p>
+                            <ul className="space-y-2 mb-5">
+                                <li className="text-[12px] text-[var(--color-text-secondary)] flex items-start gap-2"><ChevronRight size={12} className="mt-0.5 shrink-0" />Pure C with zero overhead</li>
+                                <li className="text-[12px] text-[var(--color-text-secondary)] flex items-start gap-2"><ChevronRight size={12} className="mt-0.5 shrink-0" />AVX2 SIMD &amp; SSE 4.2 optimized</li>
+                                <li className="text-[12px] text-[var(--color-text-secondary)] flex items-start gap-2"><ChevronRight size={12} className="mt-0.5 shrink-0" />Tuned for AMD Ryzen processors</li>
+                                <li className="text-[12px] text-[var(--color-text-secondary)] flex items-start gap-2"><ChevronRight size={12} className="mt-0.5 shrink-0" />Multi-threaded pipeline</li>
+                            </ul>
+                            <div className="code-block p-3">
+                                <pre className="text-[11px] font-mono text-[var(--color-text-secondary)]">{`echo "logs" | ./plumbr -j0`}</pre>
+                            </div>
+                        </div>
+
+                        {/* Python Package */}
+                        <div className="card p-6">
+                            <div className="flex items-center gap-2.5 mb-4">
+                                <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: 'rgba(232,232,232,0.06)', border: '1px solid var(--color-border)' }}>
+                                    <Package size={18} />
+                                </div>
+                                <div>
+                                    <h3 className="text-[15px] font-semibold">Python Package</h3>
+                                    <span className="text-[11px] text-[var(--color-text-tertiary)]">Best of both worlds</span>
+                                </div>
+                            </div>
+                            <div className="text-2xl font-bold mb-1" style={{ color: '#e8e8e8' }}>83K <span className="text-sm font-normal text-[var(--color-text-secondary)]">lines/sec</span></div>
+                            <p className="text-[12px] text-[var(--color-text-tertiary)] mb-4">C engine via ctypes FFI</p>
+                            <ul className="space-y-2 mb-5">
+                                <li className="text-[12px] text-[var(--color-text-secondary)] flex items-start gap-2"><ChevronRight size={12} className="mt-0.5 shrink-0" />pip install plumbrc</li>
+                                <li className="text-[12px] text-[var(--color-text-secondary)] flex items-start gap-2"><ChevronRight size={12} className="mt-0.5 shrink-0" />Same C engine under the hood</li>
+                                <li className="text-[12px] text-[var(--color-text-secondary)] flex items-start gap-2"><ChevronRight size={12} className="mt-0.5 shrink-0" />No network latency</li>
+                                <li className="text-[12px] text-[var(--color-text-secondary)] flex items-start gap-2"><ChevronRight size={12} className="mt-0.5 shrink-0" />Great for CI/CD pipelines</li>
+                            </ul>
+                            <div className="code-block p-3">
+                                <pre className="text-[11px] font-mono text-[var(--color-text-secondary)]">{`from plumbrc import Plumbr
+r = Plumbr()
+r.redact("AKIA...")`}</pre>
+                            </div>
+                        </div>
+
+                        {/* REST API */}
+                        <div className="card p-6">
+                            <div className="flex items-center gap-2.5 mb-4">
+                                <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: 'rgba(232,232,232,0.06)', border: '1px solid var(--color-border)' }}>
+                                    <Globe size={18} />
+                                </div>
+                                <div>
+                                    <h3 className="text-[15px] font-semibold">REST API</h3>
+                                    <span className="text-[11px] text-[var(--color-text-tertiary)]">Easy integration</span>
+                                </div>
+                            </div>
+                            <div className="text-2xl font-bold mb-1" style={{ color: '#e8e8e8' }}>~0.1ms <span className="text-sm font-normal text-[var(--color-text-secondary)]">processing</span></div>
+                            <p className="text-[12px] text-[var(--color-text-tertiary)] mb-4">Network latency is the bottleneck</p>
+                            <ul className="space-y-2 mb-5">
+                                <li className="text-[12px] text-[var(--color-text-secondary)] flex items-start gap-2"><ChevronRight size={12} className="mt-0.5 shrink-0" />Language-agnostic HTTP calls</li>
+                                <li className="text-[12px] text-[var(--color-text-secondary)] flex items-start gap-2"><ChevronRight size={12} className="mt-0.5 shrink-0" />Best for testing &amp; prototyping</li>
+                                <li className="text-[12px] text-[var(--color-text-secondary)] flex items-start gap-2"><ChevronRight size={12} className="mt-0.5 shrink-0" />Use batch endpoint for throughput</li>
+                                <li className="text-[12px] text-[var(--color-text-secondary)] flex items-start gap-2"><ChevronRight size={12} className="mt-0.5 shrink-0" />Sub-ms server processing time</li>
+                            </ul>
+                            <div className="code-block p-3">
+                                <pre className="text-[11px] font-mono text-[var(--color-text-secondary)]">{`curl -X POST /api/redact \\
+  -d '{"text": "..."}'`}</pre>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Honest note */}
+                    <div className="mt-6 card p-5 flex items-start gap-3">
+                        <AlertTriangle size={18} className="text-[var(--color-text-secondary)] shrink-0 mt-0.5" />
+                        <div>
+                            <p className="text-[13px] font-medium mb-1">A note on performance</p>
+                            <p className="text-[12px] text-[var(--color-text-secondary)] leading-relaxed">
+                                The REST API processes each request in under 0.1ms on the server, but network round-trip latency (~100-800ms depending on location) dominates the total time.
+                                For production workloads, we strongly recommend the <strong>native C binary</strong> or the <strong>Python package</strong> — both run locally with zero network overhead.
+                                The C engine is specifically optimized for AMD Ryzen processors using AVX2 and SSE 4.2 SIMD instructions, but works on any x86-64 CPU.
+                                The REST API is ideal for testing, prototyping, and low-volume use cases where convenience matters more than throughput.
+                            </p>
                         </div>
                     </div>
                 </div>
