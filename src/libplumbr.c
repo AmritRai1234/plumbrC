@@ -6,6 +6,7 @@
 #include "libplumbr.h"
 #include "arena.h"
 #include "config.h"
+#include "hwdetect.h"
 #include "patterns.h"
 #include "redactor.h"
 
@@ -64,6 +65,12 @@ libplumbr_t *libplumbr_new(const libplumbr_config_t *config) {
     free(p);
     return NULL;
   }
+
+  /* Auto-detect hardware and apply CPU-specific tuning */
+  HardwareInfo hw;
+  hwdetect_init(&hw);
+  ac_set_prefetch(p->patterns->automaton, hw.prefetch_distance,
+                  hw.prefetch_hint);
 
   /* Create redactor */
   p->redactor = redactor_create(&p->arena, p->patterns, p->max_line_size);

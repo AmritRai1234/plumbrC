@@ -3,6 +3,7 @@
  * Main processing loop
  */
 
+#include "aho_corasick.h"
 #include "arena.h"
 #include "hwdetect.h"
 #include "io.h"
@@ -251,6 +252,8 @@ int plumbr_process_fd(PlumbrContext *ctx, int in_fd, int out_fd) {
       if (!hw_initialized) {
         hwdetect_init(&hw_info);
         hwdetect_autotune_threads(&hw_info);
+        ac_set_prefetch(ctx->patterns->automaton, hw_info.prefetch_distance,
+                        hw_info.prefetch_hint);
         __sync_synchronize(); /* Memory barrier */
         hw_initialized = 1;
       }

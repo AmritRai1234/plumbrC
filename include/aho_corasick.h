@@ -35,6 +35,9 @@ bool ac_add_pattern(ACAutomaton *ac, const char *pattern, size_t len,
 /* Build failure links (call after all patterns added) */
 bool ac_build(ACAutomaton *ac);
 
+/* Set runtime prefetch tuning from hwdetect */
+void ac_set_prefetch(ACAutomaton *ac, int distance, int hint);
+
 /* Search text for all patterns, calls callback for each match */
 void ac_search(const ACAutomaton *ac, const char *text, size_t len,
                ACMatchCallback callback, void *user_data);

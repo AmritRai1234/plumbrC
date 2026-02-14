@@ -147,6 +147,29 @@ static void detect_features(CpuInfo *cpu) {
       cpu->is_zen4 = true;
     }
   }
+
+  /* Intel generation detection using family/model */
+  if (cpu->vendor == CPU_VENDOR_INTEL) {
+    get_cpuid(1, 0, &eax, &ebx, &ecx, &edx);
+    uint32_t family = ((eax >> 8) & 0xF) + ((eax >> 20) & 0xFF);
+    uint32_t model = ((eax >> 4) & 0xF) | ((eax >> 12) & 0xF0);
+
+    /* Family 6 covers all modern Intel Core/Xeon */
+    if (family == 6) {
+      /* Ice Lake: Server=0x6A/0x6C, Client=0x7E */
+      if (model == 0x6A || model == 0x6C || model == 0x7E) {
+        cpu->is_ice_lake = true;
+      }
+      /* Alder Lake: Client=0x97/0x9A, Server=0xBF */
+      if (model == 0x97 || model == 0x9A || model == 0xBF) {
+        cpu->is_alder_lake = true;
+      }
+      /* Raptor Lake: 0xB7/0xBF/0xBA */
+      if (model == 0xB7 || model == 0xBA) {
+        cpu->is_raptor_lake = true;
+      }
+    }
+  }
 #endif
 }
 
@@ -378,6 +401,23 @@ void hwdetect_init(HardwareInfo *info) {
 
   /* Default optimal = physical cores (safe choice) */
   info->optimal_threads = info->cpu.physical_cores;
+
+  /* Set prefetch tuning based on cache sizes */
+  if (info->cpu.l2_cache_kb >= 1024) {
+    /* Large L2 (≥1MB): pull into L1, prefetch 2 ahead */
+    info->prefetch_distance = 2;
+    info->prefetch_hint = 0; /* _MM_HINT_T0 = L1 */
+  } else {
+    /* Smaller L2: pull into L2, prefetch 1 ahead */
+    info->prefetch_distance = 1;
+    info->prefetch_hint = 1; /* _MM_HINT_T1 = L2 */
+  }
+
+  /* AMD Zen 3/4 has aggressive hardware prefetching — reduce software hints */
+  if (info->cpu.is_zen3 || info->cpu.is_zen4) {
+    info->prefetch_distance = 1;
+    info->prefetch_hint = 1; /* L2 only, let HW prefetcher handle L1 */
+  }
 }
 
 /* Print hardware info */
@@ -415,6 +455,12 @@ void hwdetect_print(const HardwareInfo *info) {
     fprintf(stderr, "Architecture: AMD Zen 3 (Ryzen 5000)\n");
   if (info->cpu.is_zen4)
     fprintf(stderr, "Architecture: AMD Zen 4 (Ryzen 7000)\n");
+  if (info->cpu.is_ice_lake)
+    fprintf(stderr, "Architecture: Intel Ice Lake\n");
+  if (info->cpu.is_alder_lake)
+    fprintf(stderr, "Architecture: Intel Alder Lake (12th Gen)\n");
+  if (info->cpu.is_raptor_lake)
+    fprintf(stderr, "Architecture: Intel Raptor Lake (13th/14th Gen)\n");
 
   /* GPU Info */
   if (info->gpu.available) {
@@ -459,6 +505,8 @@ void hwdetect_print(const HardwareInfo *info) {
   fprintf(stderr, "Batch Size: %zu lines\n", info->optimal_batch_size);
   fprintf(stderr, "Use AVX2: %s\n", info->use_avx2 ? "Yes" : "No");
   fprintf(stderr, "Use GPU: %s\n", info->use_gpu ? "Yes" : "No");
+  fprintf(stderr, "Prefetch: distance=%d, hint=%s\n", info->prefetch_distance,
+          info->prefetch_hint == 0 ? "L1" : "L2");
   fprintf(stderr, "==========================\n\n");
 }
 

@@ -30,6 +30,9 @@ struct ACAutomaton {
   size_t num_patterns;
   bool built;
   Arena *arena;
+  /* Runtime prefetch tuning (set by hwdetect) */
+  int prefetch_distance; /* How many bytes ahead to prefetch; default=1 */
+  int prefetch_hint;     /* 0=L1 (_MM_HINT_T0), 1=L2 (_MM_HINT_T1) */
 };
 
 /* Queue for BFS during build */
@@ -79,6 +82,8 @@ ACAutomaton *ac_create(Arena *arena) {
 
   ac->num_patterns = 0;
   ac->built = false;
+  ac->prefetch_distance = 1; /* Safe default */
+  ac->prefetch_hint = 1;     /* L2 default */
 
   return ac;
 }
@@ -198,6 +203,11 @@ bool ac_build(ACAutomaton *ac) {
   return true;
 }
 
+void ac_set_prefetch(ACAutomaton *ac, int distance, int hint) {
+  ac->prefetch_distance = distance > 0 ? distance : 1;
+  ac->prefetch_hint = hint;
+}
+
 void ac_search(const ACAutomaton *ac, const char *text, size_t len,
                ACMatchCallback callback, void *user_data) {
   if (!ac->built || len == 0) {
@@ -205,6 +215,7 @@ void ac_search(const ACAutomaton *ac, const char *text, size_t len,
   }
 
   int32_t state = 0;
+  const int pf_dist = ac->prefetch_distance;
 
   for (size_t i = 0; i < len; i++) {
     uint8_t c = (uint8_t)text[i];
@@ -217,13 +228,18 @@ void ac_search(const ACAutomaton *ac, const char *text, size_t len,
     int32_t next = ac->states[state].goto_table[c];
     state = (next != -1) ? next : 0;
 
-    /* Prefetch next state's goto_table to hide memory latency.
-     * Each ACState is ~1KB, so prefetching is critical for L1 hits. */
-    if (i + 1 < len) {
-      uint8_t next_c = (uint8_t)text[i + 1];
-      int32_t peek = ac->states[state].goto_table[next_c];
+    /* Prefetch ahead using runtime-tuned distance.
+     * On Intel Ice Lake (large L2): distance=2, hint=L1
+     * On AMD Zen 3/4 (strong HW prefetch): distance=1, hint=L2 */
+    if (i + pf_dist < len) {
+      uint8_t future_c = (uint8_t)text[i + pf_dist];
+      int32_t peek = ac->states[state].goto_table[future_c];
       if (peek != -1) {
-        __builtin_prefetch(&ac->states[peek].goto_table, 0, 1);
+        if (ac->prefetch_hint == 0) {
+          __builtin_prefetch(&ac->states[peek].goto_table, 0, 3); /* L1 */
+        } else {
+          __builtin_prefetch(&ac->states[peek].goto_table, 0, 1); /* L2 */
+        }
       }
     }
 

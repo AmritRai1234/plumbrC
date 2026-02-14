@@ -132,9 +132,16 @@ const char *redactor_process(Redactor *r, const char *line, size_t len,
       search_start = 0;
     }
 
-    /* SECURITY: Use match context with limits */
-    int rc = pcre2_match(pat->regex, (PCRE2_SPTR)line, len, search_start, 0, md,
-                         r->match_ctx);
+    /* SECURITY: Use match context with limits.
+     * pcre2_jit_match uses JIT-compiled native code (3-10x faster).
+     * Falls back to pcre2_match if JIT wasn't compiled for this pattern. */
+    int rc = pcre2_jit_match(pat->regex, (PCRE2_SPTR)line, len, search_start, 0,
+                             md, r->match_ctx);
+    if (rc == PCRE2_ERROR_JIT_BADOPTION) {
+      /* JIT not available for this pattern — fallback to interpreter */
+      rc = pcre2_match(pat->regex, (PCRE2_SPTR)line, len, search_start, 0, md,
+                       r->match_ctx);
+    }
 
     if (rc > 0) {
       PCRE2_SIZE *ovector = pcre2_get_ovector_pointer(md);

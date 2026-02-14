@@ -58,6 +58,11 @@ typedef struct {
   /* AMD specific */
   bool is_zen3; /* Ryzen 5000 */
   bool is_zen4; /* Ryzen 7000 */
+
+  /* Intel specific */
+  bool is_ice_lake;    /* 10th gen / Xeon Silver 4300+ */
+  bool is_alder_lake;  /* 12th gen Core */
+  bool is_raptor_lake; /* 13th/14th gen Core */
 } CpuInfo;
 
 /* Memory Info */
@@ -105,6 +110,10 @@ typedef struct {
 
   /* Batch sizing */
   size_t optimal_batch_size;
+
+  /* Runtime prefetch tuning (auto-set by hwdetect) */
+  int prefetch_distance; /* States to prefetch ahead in AC search */
+  int prefetch_hint;     /* 0=_MM_HINT_T0 (L1), 1=_MM_HINT_T1 (L2) */
 } HardwareInfo;
 
 /* Detect hardware - call once at startup */
