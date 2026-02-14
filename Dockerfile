@@ -3,17 +3,19 @@
 # ============================================
 FROM alpine:3.19 AS c-builder
 
-RUN apk add --no-cache build-base pcre2-dev linux-headers
+RUN apk add --no-cache build-base pcre2-dev linux-headers grpc-dev protobuf-dev
 
 WORKDIR /app
 COPY src/ src/
 COPY include/ include/
 COPY patterns/ patterns/
+COPY proto/ proto/
 COPY Makefile .
 
-# Build CLI + HTTP server without -march=native (not portable in containers)
+# Build CLI + HTTP server + gRPC server
 RUN make OPT_FLAGS="-O3 -march=x86-64 -flto -fomit-frame-pointer -fno-plt -ffunction-sections -fdata-sections" && \
-    make server OPT_FLAGS="-O3 -march=x86-64 -flto -fomit-frame-pointer -fno-plt -ffunction-sections -fdata-sections"
+    make server OPT_FLAGS="-O3 -march=x86-64 -flto -fomit-frame-pointer -fno-plt -ffunction-sections -fdata-sections" && \
+    make grpc
 
 # ============================================
 # Stage 2: Build the Next.js app
@@ -38,15 +40,16 @@ RUN npm run build
 # ============================================
 FROM node:20-alpine AS runner
 
-# Install PCRE2 runtime + libc compatibility + nginx
-RUN apk add --no-cache pcre2 libstdc++ nginx
+# Install PCRE2 runtime + libc compatibility + nginx + gRPC runtime
+RUN apk add --no-cache pcre2 libstdc++ nginx grpc-cpp libprotobuf
 
 WORKDIR /app
 
 # Copy the compiled C binaries
 COPY --from=c-builder /app/build/bin/plumbr ./build/bin/plumbr
 COPY --from=c-builder /app/build/bin/plumbr-server ./build/bin/plumbr-server
-RUN chmod +x ./build/bin/plumbr ./build/bin/plumbr-server
+COPY --from=c-builder /app/build/bin/plumbr-grpc ./build/bin/plumbr-grpc
+RUN chmod +x ./build/bin/plumbr ./build/bin/plumbr-server ./build/bin/plumbr-grpc
 
 # Copy pattern files
 COPY --from=c-builder /app/patterns/ ./patterns/
@@ -74,8 +77,8 @@ ENV DB_PATH=/app/data/plumbr.db
 ENV JWT_SECRET=change-this-in-production
 ENV PLUMBR_THREADS=4
 
-# nginx on :3000 (public), C server on :8081, Next.js on :3001 (internal)
-EXPOSE 3000
+# nginx on :3000 (public), C server on :8081, gRPC on :50051, Next.js on :3001 (internal)
+EXPOSE 3000 50051
 
 # Data volume for SQLite persistence
 VOLUME ["/app/data"]

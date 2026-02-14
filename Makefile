@@ -52,8 +52,15 @@ SANITIZE_FLAGS = -fsanitize=address,undefined -fno-omit-frame-pointer
 # Profile flags
 PROFILE_FLAGS = -g -pg
 
+# gRPC / Protobuf
+PROTO_DIR = proto
+GRPC_GEN_DIR = $(BUILD_DIR)/grpc_gen
+GRPC_CPP_PLUGIN = $(shell which grpc_cpp_plugin)
+PROTOC = protoc
+
 # Default: release build
-.PHONY: all release debug sanitize profile clean test benchmark install server
+.PHONY: all release debug sanitize profile clean test benchmark install server grpc
+
 
 all: release
 
@@ -237,9 +244,47 @@ help:
 	@echo "  make profile  - Build for profiling with gprof"
 	@echo "  make lib      - Build static library"
 	@echo "  make server   - Build HTTP API server"
+	@echo "  make grpc     - Build gRPC API server"
 	@echo "  make test     - Quick functionality test"
 	@echo "  make benchmark- Run performance benchmark"
 	@echo "  make clean    - Remove build artifacts"
 	@echo "  make install  - Install to /usr/local/bin"
 	@echo "  make analyze  - Run static analysis"
 	@echo "  make help     - Show this help"
+
+# ─── gRPC server build ─────────────────────────────────────────
+
+# Generate protobuf + gRPC C++ stubs
+$(GRPC_GEN_DIR)/plumbr.pb.cc $(GRPC_GEN_DIR)/plumbr.pb.h: $(PROTO_DIR)/plumbr.proto | $(GRPC_GEN_DIR)
+	$(PROTOC) -I$(PROTO_DIR) \
+		--cpp_out=$(GRPC_GEN_DIR) \
+		$<
+
+$(GRPC_GEN_DIR)/plumbr.grpc.pb.cc $(GRPC_GEN_DIR)/plumbr.grpc.pb.h: $(PROTO_DIR)/plumbr.proto | $(GRPC_GEN_DIR)
+	$(PROTOC) -I$(PROTO_DIR) \
+		--grpc_out=$(GRPC_GEN_DIR) \
+		--plugin=protoc-gen-grpc=$(GRPC_CPP_PLUGIN) \
+		$<
+
+$(GRPC_GEN_DIR):
+	mkdir -p $@
+
+# Compile generated protobuf sources
+$(OBJ_DIR)/plumbr.pb.o: $(GRPC_GEN_DIR)/plumbr.pb.cc $(GRPC_GEN_DIR)/plumbr.pb.h | $(OBJ_DIR)
+	g++ -std=c++17 -O2 -I$(GRPC_GEN_DIR) -c $< -o $@
+
+$(OBJ_DIR)/plumbr.grpc.pb.o: $(GRPC_GEN_DIR)/plumbr.grpc.pb.cc $(GRPC_GEN_DIR)/plumbr.grpc.pb.h | $(OBJ_DIR)
+	g++ -std=c++17 -O2 -I$(GRPC_GEN_DIR) -c $< -o $@
+
+# Compile gRPC server
+$(OBJ_DIR)/grpc_server.o: $(SRC_DIR)/grpc_server.cc $(GRPC_GEN_DIR)/plumbr.pb.h $(GRPC_GEN_DIR)/plumbr.grpc.pb.h | $(OBJ_DIR)
+	g++ -std=c++17 -O2 -I$(INC_DIR) -I$(GRPC_GEN_DIR) -c $< -o $@
+
+# Link gRPC server
+GRPC_LDFLAGS = -lgrpc++ -lgrpc -lprotobuf -lpthread -lpcre2-8
+
+$(BIN_DIR)/plumbr-grpc: $(OBJ_DIR)/grpc_server.o $(OBJ_DIR)/plumbr.pb.o $(OBJ_DIR)/plumbr.grpc.pb.o $(LIB_OBJS) | $(BIN_DIR)
+	g++ -std=c++17 $^ -o $@ $(GRPC_LDFLAGS)
+	@echo "Built: $@"
+
+grpc: lib $(BIN_DIR)/plumbr-grpc

@@ -1,0 +1,51 @@
+syntax = "proto3";
+
+package plumbr.v1;
+
+option go_package = "github.com/AmritRai1234/plumbrC/proto";
+
+// PlumbrC Redaction Service
+service PlumbrService {
+  // Single line redaction
+  rpc Redact (RedactRequest) returns (RedactResponse);
+
+  // Batch redaction
+  rpc RedactBatch (RedactBatchRequest) returns (RedactBatchResponse);
+
+  // Bidirectional streaming — maximum throughput
+  // Client streams lines in, server streams redacted lines back
+  rpc RedactStream (stream RedactRequest) returns (stream RedactResponse);
+
+  // Health check
+  rpc Health (HealthRequest) returns (HealthResponse);
+}
+
+message RedactRequest {
+  string text = 1;
+}
+
+message RedactResponse {
+  string redacted = 1;
+  int32 patterns_matched = 2;
+  double processing_time_ms = 3;
+}
+
+message RedactBatchRequest {
+  repeated string texts = 1;
+}
+
+message RedactBatchResponse {
+  repeated RedactResponse results = 1;
+  int32 total_lines = 2;
+  int32 total_modified = 3;
+  double processing_time_ms = 4;
+}
+
+message HealthRequest {}
+
+message HealthResponse {
+  string status = 1;
+  string version = 2;
+  int64 patterns_loaded = 3;
+  double uptime_seconds = 4;
+}
