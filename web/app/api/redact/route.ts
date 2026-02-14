@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 
 // The PlumbrC HTTP server runs as a sidecar on port 8081
-// It handles redaction with pre-loaded patterns at 60K+ req/sec
+// When nginx is deployed, /api/redact is routed directly to C server (this route is bypassed)
 const PLUMBR_SERVER = process.env.PLUMBR_SERVER_URL || "http://localhost:8081";
+
 
 // Max input size: 1MB
 const MAX_INPUT_SIZE = 1024 * 1024;

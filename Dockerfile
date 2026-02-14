@@ -38,8 +38,8 @@ RUN npm run build
 # ============================================
 FROM node:20-alpine AS runner
 
-# Install PCRE2 runtime + libc compatibility
-RUN apk add --no-cache pcre2 libstdc++
+# Install PCRE2 runtime + libc compatibility + nginx
+RUN apk add --no-cache pcre2 libstdc++ nginx
 
 WORKDIR /app
 
@@ -56,21 +56,26 @@ COPY --from=web-builder /app/web/.next/standalone ./web/
 COPY --from=web-builder /app/web/.next/static ./web/.next/static
 COPY --from=web-builder /app/web/public ./web/public
 
+# Nginx reverse proxy config (routes /api/redact → C server directly)
+COPY nginx.conf /etc/nginx/nginx.conf
+RUN mkdir -p /var/log/nginx /run/nginx
+
 # Create data directory for SQLite
 RUN mkdir -p /app/data
 
-# Startup script that runs both C server + Next.js
+# Startup script: nginx + C server + Next.js
 COPY start.sh /app/start.sh
 RUN chmod +x /app/start.sh
 
 ENV NODE_ENV=production
-ENV PORT=3000
+ENV PORT=3001
 ENV HOSTNAME=0.0.0.0
 ENV DB_PATH=/app/data/plumbr.db
 ENV JWT_SECRET=change-this-in-production
 ENV PLUMBR_THREADS=4
 
-EXPOSE 3000 8081
+# nginx on :3000 (public), C server on :8081, Next.js on :3001 (internal)
+EXPOSE 3000
 
 # Data volume for SQLite persistence
 VOLUME ["/app/data"]
