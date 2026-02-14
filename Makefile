@@ -280,8 +280,9 @@ $(OBJ_DIR)/plumbr.grpc.pb.o: $(GRPC_GEN_DIR)/plumbr.grpc.pb.cc $(GRPC_GEN_DIR)/p
 $(OBJ_DIR)/grpc_server.o: $(SRC_DIR)/grpc_server.cc $(GRPC_GEN_DIR)/plumbr.pb.h $(GRPC_GEN_DIR)/plumbr.grpc.pb.h | $(OBJ_DIR)
 	g++ -std=c++17 -O2 -I$(INC_DIR) -I$(GRPC_GEN_DIR) -c $< -o $@
 
-# Link gRPC server
-GRPC_LDFLAGS = -lgrpc++ -lgrpc -lprotobuf -lpthread -lpcre2-8
+# Link gRPC server — use pkg-config for correct flags
+GRPC_LDFLAGS = $(shell pkg-config --libs grpc++ protobuf 2>/dev/null || echo "-lgrpc++ -lgrpc -lgpr -lprotobuf -lupb -laddress_sorting -lre2 -lcares -lz -lssl -lcrypto -labsl_status -labsl_statusor -labsl_str_format_internal -labsl_synchronization -labsl_time -labsl_time_zone -labsl_strings -labsl_strings_internal -labsl_int128 -labsl_base -labsl_spinlock_wait -labsl_throw_delegate -labsl_raw_logging_internal -labsl_log_severity -labsl_cord -labsl_cordz_info -labsl_cord_internal -labsl_cordz_functions -labsl_cordz_handle -labsl_exponential_biased -labsl_hash -labsl_city -labsl_low_level_hash -labsl_raw_hash_set -labsl_hashtablez_sampler -labsl_strerror -labsl_symbolize -labsl_stacktrace -labsl_debugging_internal -labsl_demangle_internal -labsl_malloc_internal -labsl_examine_stack") -lpcre2-8
+GRPC_CXXFLAGS = $(shell pkg-config --cflags grpc++ protobuf 2>/dev/null)
 
 $(BIN_DIR)/plumbr-grpc: $(OBJ_DIR)/grpc_server.o $(OBJ_DIR)/plumbr.pb.o $(OBJ_DIR)/plumbr.grpc.pb.o $(LIB_OBJS) | $(BIN_DIR)
 	g++ -std=c++17 $^ -o $@ $(GRPC_LDFLAGS)
