@@ -246,17 +246,6 @@ size_t parallel_lines_modified(const ParallelCtx *ctx) {
   return total;
 }
 
-/* Reset stats */
-void parallel_reset_stats(ParallelCtx *ctx) {
-  ctx->total_patterns_matched = parallel_patterns_matched(ctx);
-  ctx->total_lines_modified = parallel_lines_modified(ctx);
-
-  for (int i = 0; i < ctx->num_threads; i++) {
-    ctx->workers[i].patterns_matched = 0;
-    ctx->workers[i].lines_modified = 0;
-  }
-}
-
 /* Destroy */
 void parallel_destroy(ParallelCtx *ctx) {
   if (!ctx)

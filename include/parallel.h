@@ -39,9 +39,6 @@ int parallel_process(ParallelCtx *ctx, const char **lines,
 size_t parallel_patterns_matched(const ParallelCtx *ctx);
 size_t parallel_lines_modified(const ParallelCtx *ctx);
 
-/* Reset stats */
-void parallel_reset_stats(ParallelCtx *ctx);
-
 /* Destroy */
 void parallel_destroy(ParallelCtx *ctx);
 

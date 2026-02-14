@@ -9,6 +9,7 @@
 
 #include "redactor.h"
 #include "config.h"
+#include "sse42_filter.h"
 
 #include <string.h>
 
@@ -64,6 +65,16 @@ Redactor *redactor_create(Arena *arena, PatternSet *patterns,
   r->lines_scanned = 0;
   r->lines_modified = 0;
   r->patterns_matched = 0;
+  r->lines_prefiltered = 0;
+
+  /* Build SSE 4.2 trigger cache from AC root state */
+  r->use_sse42 = sse42_available();
+  if (r->use_sse42 && patterns->automaton) {
+    r->trigger_count = sse42_build_triggers(patterns->automaton, r->triggers,
+                                            sizeof(r->triggers));
+  } else {
+    r->trigger_count = 0;
+  }
 
   return r;
 }
@@ -86,6 +97,16 @@ const char *redactor_process(Redactor *r, const char *line, size_t len,
   if (PLUMBR_UNLIKELY(len == 0)) {
     *out_len = 0;
     return line;
+  }
+
+  /* Phase 0: SSE 4.2 pre-filter — skip lines without trigger chars */
+  if (r->use_sse42 && r->trigger_count > 0) {
+    if (!sse42_has_triggers(r->triggers, r->trigger_count, line, len)) {
+      /* No trigger characters found — impossible to have any AC matches */
+      r->lines_prefiltered++;
+      *out_len = len;
+      return line;
+    }
   }
 
   /* Phase 1: AC scan for candidate positions */

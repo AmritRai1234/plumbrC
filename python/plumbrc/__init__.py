@@ -14,5 +14,5 @@ Example:
 from plumbrc._plumbr import Plumbr
 from plumbrc.exceptions import PlumbrError, LibraryNotFoundError, RedactionError
 
-__version__ = "1.0.0"
+__version__ = "1.0.2"
 __all__ = ["Plumbr", "PlumbrError", "LibraryNotFoundError", "RedactionError"]

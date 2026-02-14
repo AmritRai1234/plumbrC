@@ -21,42 +21,16 @@ typedef struct {
 /* Initialize arena with given size (uses mmap) */
 bool arena_init(Arena *arena, size_t size);
 
-/* Initialize arena with external memory */
-void arena_init_with_buffer(Arena *arena, void *buffer, size_t size);
-
 /* Allocate from arena (returns NULL if full) */
 void *arena_alloc(Arena *arena, size_t size);
-
-/* Allocate aligned memory */
-void *arena_alloc_aligned(Arena *arena, size_t size, size_t alignment);
 
 /* Reset arena (reuse memory, no syscalls) */
 void arena_reset(Arena *arena);
 
-/* Get remaining space */
-size_t arena_remaining(const Arena *arena);
-
 /* Get stats */
 size_t arena_used(const Arena *arena);
-size_t arena_high_water(const Arena *arena);
 
 /* Destroy arena (free memory if owned) */
 void arena_destroy(Arena *arena);
-
-/*
- * Scratch arena - for temporary allocations within a scope
- * Usage:
- *   ScratchArena scratch = scratch_begin(&main_arena);
- *   void *tmp = arena_alloc(&scratch.arena, 1024);
- *   // use tmp...
- *   scratch_end(&scratch);  // automatically resets
- */
-typedef struct {
-  Arena *parent;
-  size_t saved_used;
-} ScratchArena;
-
-ScratchArena scratch_begin(Arena *parent);
-void scratch_end(ScratchArena *scratch);
 
 #endif /* PLUMBR_ARENA_H */

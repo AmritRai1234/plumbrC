@@ -38,9 +38,6 @@ typedef struct {
 /* Initialize I/O context with file descriptors */
 void io_init(IOContext *ctx, int read_fd, int write_fd);
 
-/* Initialize with FILE* (convenience) */
-void io_init_stdio(IOContext *ctx, FILE *in, FILE *out);
-
 /* Read next line (returns pointer to line, sets length)
  * Returns NULL on EOF or error
  * The returned pointer is valid until next io_read_line call */
@@ -54,9 +51,6 @@ bool io_write_line(IOContext *ctx, const char *line, size_t len);
 
 /* Flush output buffer */
 bool io_flush(IOContext *ctx);
-
-/* Check if EOF */
-bool io_eof(const IOContext *ctx);
 
 /* Get stats */
 size_t io_bytes_read(const IOContext *ctx);

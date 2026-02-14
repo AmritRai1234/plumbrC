@@ -51,10 +51,9 @@ bool ac_search_first(const ACAutomaton *ac, const char *text, size_t len,
 size_t ac_search_all(const ACAutomaton *ac, const char *text, size_t len,
                      ACMatch *matches, size_t max_matches);
 
-/* Get number of patterns */
-size_t ac_pattern_count(const ACAutomaton *ac);
-
-/* Get number of states (for debugging/stats) */
-size_t ac_state_count(const ACAutomaton *ac);
+/* Get root state DFA transitions (for building trigger sets)
+ * Returns pointer to AC_ALPHABET_SIZE int16_t values.
+ * Non-zero values indicate valid first-byte transitions */
+const int16_t *ac_get_root_transitions(const ACAutomaton *ac);
 
 #endif /* PLUMBR_AHO_CORASICK_H */

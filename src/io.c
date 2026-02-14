@@ -3,6 +3,7 @@
  */
 
 #include "io.h"
+#include "avx2_scan.h"
 #include "config.h"
 
 #include <errno.h>
@@ -13,10 +14,6 @@ void io_init(IOContext *ctx, int read_fd, int write_fd) {
   memset(ctx, 0, sizeof(IOContext));
   ctx->read_fd = read_fd;
   ctx->write_fd = write_fd;
-}
-
-void io_init_stdio(IOContext *ctx, FILE *in, FILE *out) {
-  io_init(ctx, fileno(in), fileno(out));
 }
 
 /* Internal: refill read buffer */
@@ -70,7 +67,7 @@ const char *io_read_line(IOContext *ctx, size_t *out_len) {
       char *start = ctx->read_buf + ctx->read_pos;
       size_t avail = ctx->read_len - ctx->read_pos;
 
-      char *nl = memchr(start, '\n', avail);
+      char *nl = (char *)avx2_memchr(start, avail, '\n');
 
       if (nl != NULL) {
         size_t chunk_len = nl - start;
@@ -137,7 +134,7 @@ const char *io_read_line(IOContext *ctx, size_t *out_len) {
     char *start = ctx->read_buf + ctx->read_pos;
     size_t avail = ctx->read_len - ctx->read_pos;
 
-    char *nl = memchr(start, '\n', avail);
+    char *nl = (char *)avx2_memchr(start, avail, '\n');
 
     if (nl != NULL) {
       size_t line_len = nl - start;
@@ -227,11 +224,6 @@ bool io_flush(IOContext *ctx) {
   ctx->bytes_written += ctx->write_pos;
   ctx->write_pos = 0;
   return true;
-}
-
-bool io_eof(const IOContext *ctx) {
-  return ctx->read_eof && ctx->read_pos >= ctx->read_len &&
-         ctx->line_carry_len == 0;
 }
 
 size_t io_bytes_read(const IOContext *ctx) { return ctx->bytes_read; }

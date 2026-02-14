@@ -347,6 +347,9 @@ size_t ac_search_all(const ACAutomaton *ac, const char *text, size_t len,
   return ctx.count;
 }
 
-size_t ac_pattern_count(const ACAutomaton *ac) { return ac->num_patterns; }
-
-size_t ac_state_count(const ACAutomaton *ac) { return ac->num_states; }
+const int16_t *ac_get_root_transitions(const ACAutomaton *ac) {
+  if (!ac || !ac->dfa) {
+    return NULL;
+  }
+  return &ac->dfa[0]; /* State 0 (root) row */
+}
