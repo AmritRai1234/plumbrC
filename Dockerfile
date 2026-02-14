@@ -1,9 +1,9 @@
 # ============================================
 # Stage 1: Build the C binaries
 # ============================================
-FROM alpine:3.19 AS c-builder
+FROM alpine:3.21 AS c-builder
 
-RUN apk add --no-cache build-base pcre2-dev linux-headers grpc-dev protobuf-dev openssl-dev c-ares-dev re2-dev zlib-dev
+RUN apk add --no-cache build-base pcre2-dev linux-headers grpc-dev protobuf-dev
 
 WORKDIR /app
 COPY src/ src/
@@ -40,9 +40,8 @@ RUN npm run build
 # ============================================
 FROM node:20-alpine AS runner
 
-# Install PCRE2 runtime + libc compatibility + nginx
-# Note: grpc-cpp NOT needed here — plumbr-grpc is statically linked
-RUN apk add --no-cache pcre2 libstdc++ nginx
+# Install PCRE2 runtime + libc compatibility + nginx + gRPC runtime
+RUN apk add --no-cache pcre2 libstdc++ nginx grpc-cpp libprotobuf
 
 WORKDIR /app
 
