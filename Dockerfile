@@ -3,7 +3,7 @@
 # ============================================
 FROM alpine:3.19 AS c-builder
 
-RUN apk add --no-cache build-base pcre2-dev linux-headers grpc-dev protobuf-dev
+RUN apk add --no-cache build-base pcre2-dev linux-headers grpc-dev protobuf-dev openssl-dev c-ares-dev re2-dev zlib-dev
 
 WORKDIR /app
 COPY src/ src/
@@ -40,8 +40,9 @@ RUN npm run build
 # ============================================
 FROM node:20-alpine AS runner
 
-# Install PCRE2 runtime + libc compatibility + nginx + gRPC runtime
-RUN apk add --no-cache pcre2 libstdc++ nginx grpc-cpp libprotobuf
+# Install PCRE2 runtime + libc compatibility + nginx
+# Note: grpc-cpp NOT needed here — plumbr-grpc is statically linked
+RUN apk add --no-cache pcre2 libstdc++ nginx
 
 WORKDIR /app
 
