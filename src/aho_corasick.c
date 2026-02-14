@@ -151,51 +151,54 @@ bool ac_build(ACAutomaton *ac) {
     return false;
   }
 
-  /* Initialize failure links for depth-1 states */
+  /* Step 1: Complete root — all missing transitions loop back to root */
   ACState *root = &ac->states[0];
   for (int c = 0; c < AC_ALPHABET_SIZE; c++) {
     int32_t s = root->goto_table[c];
     if (s != -1) {
       ac->states[s].fail = 0;
       queue_push(&q, s);
+    } else {
+      root->goto_table[c] = 0; /* Stay at root */
     }
   }
 
-  /* BFS to build failure links */
+  /* Step 2: BFS with DFA completion.
+   * For each state r and character c:
+   *   - If r has a transition for c → set failure link as usual
+   *   - If r does NOT have a transition for c → copy from failure state
+   * Since BFS processes level-by-level and root is fully complete,
+   * failure states are always already completed when we reach deeper states.
+   * Result: every goto_table[c] is valid → zero failure link chasing at search
+   * time. */
   while (!queue_empty(&q)) {
     int32_t r = queue_pop(&q);
     ACState *state_r = &ac->states[r];
 
     for (int c = 0; c < AC_ALPHABET_SIZE; c++) {
       int32_t s = state_r->goto_table[c];
-      if (s == -1)
-        continue;
 
-      queue_push(&q, s);
+      if (s != -1) {
+        /* Real transition exists — compute failure link */
+        queue_push(&q, s);
 
-      /* Find failure state */
-      int32_t f = state_r->fail;
-      while (f != 0 && ac->states[f].goto_table[c] == -1) {
-        f = ac->states[f].fail;
-      }
+        /* Failure link = follow parent's fail until we find a transition for c
+         */
+        int32_t f = state_r->fail;
+        ac->states[s].fail = ac->states[f].goto_table[c];
+        /* Safe: f's goto_table is already DFA-completed (BFS order) */
 
-      int32_t goto_fc = ac->states[f].goto_table[c];
-      ac->states[s].fail = (goto_fc != -1 && goto_fc != s) ? goto_fc : 0;
-
-      /* Build output links */
-      int32_t fail_s = ac->states[s].fail;
-      if (ac->states[fail_s].is_final) {
-        ac->states[s].output = fail_s;
+        /* Build output links */
+        int32_t fail_s = ac->states[s].fail;
+        if (ac->states[fail_s].is_final) {
+          ac->states[s].output = fail_s;
+        } else {
+          ac->states[s].output = ac->states[fail_s].output;
+        }
       } else {
-        ac->states[s].output = ac->states[fail_s].output;
+        /* No transition — DFA completion: copy from failure state */
+        state_r->goto_table[c] = ac->states[state_r->fail].goto_table[c];
       }
-    }
-  }
-
-  /* Optimize: fill in missing transitions for root */
-  for (int c = 0; c < AC_ALPHABET_SIZE; c++) {
-    if (root->goto_table[c] == -1) {
-      root->goto_table[c] = 0; /* Stay at root */
     }
   }
 
@@ -209,7 +212,8 @@ void ac_set_prefetch(ACAutomaton *ac, int distance, int hint) {
 }
 
 /*
- * Inner search loop macro — avoids per-byte branch on prefetch hint.
+ * Inner search loop macro — DFA-complete, zero failure link chasing.
+ * Every goto_table[c] is valid after ac_build DFA completion.
  * LOCALITY is a compile-time constant (3=L1, 1=L2).
  */
 #define AC_SEARCH_LOOP(ac, text, len, callback, user_data, pf_dist, LOCALITY)  \
@@ -217,15 +221,11 @@ void ac_set_prefetch(ACAutomaton *ac, int distance, int hint) {
     int32_t state = 0;                                                         \
     for (size_t i = 0; i < (len); i++) {                                       \
       uint8_t c = (uint8_t)(text)[i];                                          \
-      while (state != 0 && (ac)->states[state].goto_table[c] == -1)            \
-        state = (ac)->states[state].fail;                                      \
-      int32_t next = (ac)->states[state].goto_table[c];                        \
-      state = (next != -1) ? next : 0;                                         \
+      state = (ac)->states[state].goto_table[c]; /* single lookup, no chase */ \
       if (i + (pf_dist) < (len)) {                                             \
         uint8_t fc = (uint8_t)(text)[i + (pf_dist)];                           \
         int32_t pk = (ac)->states[state].goto_table[fc];                       \
-        if (pk != -1)                                                          \
-          __builtin_prefetch(&(ac)->states[pk].goto_table, 0, LOCALITY);       \
+        __builtin_prefetch(&(ac)->states[pk].goto_table, 0, LOCALITY);         \
       }                                                                        \
       int32_t ms = state;                                                      \
       while (ms != 0) {                                                        \
