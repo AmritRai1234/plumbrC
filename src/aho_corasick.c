@@ -208,56 +208,53 @@ void ac_set_prefetch(ACAutomaton *ac, int distance, int hint) {
   ac->prefetch_hint = hint;
 }
 
+/*
+ * Inner search loop macro — avoids per-byte branch on prefetch hint.
+ * LOCALITY is a compile-time constant (3=L1, 1=L2).
+ */
+#define AC_SEARCH_LOOP(ac, text, len, callback, user_data, pf_dist, LOCALITY)  \
+  do {                                                                         \
+    int32_t state = 0;                                                         \
+    for (size_t i = 0; i < (len); i++) {                                       \
+      uint8_t c = (uint8_t)(text)[i];                                          \
+      while (state != 0 && (ac)->states[state].goto_table[c] == -1)            \
+        state = (ac)->states[state].fail;                                      \
+      int32_t next = (ac)->states[state].goto_table[c];                        \
+      state = (next != -1) ? next : 0;                                         \
+      if (i + (pf_dist) < (len)) {                                             \
+        uint8_t fc = (uint8_t)(text)[i + (pf_dist)];                           \
+        int32_t pk = (ac)->states[state].goto_table[fc];                       \
+        if (pk != -1)                                                          \
+          __builtin_prefetch(&(ac)->states[pk].goto_table, 0, LOCALITY);       \
+      }                                                                        \
+      int32_t ms = state;                                                      \
+      while (ms != 0) {                                                        \
+        if ((ac)->states[ms].is_final) {                                       \
+          ACMatch m;                                                           \
+          m.position = i;                                                      \
+          m.pattern_id = (ac)->states[ms].pattern_id;                          \
+          m.length = (ac)->states[ms].depth;                                   \
+          if (!(callback)(&m, (user_data)))                                    \
+            return;                                                            \
+        }                                                                      \
+        ms = (ac)->states[ms].output;                                          \
+      }                                                                        \
+    }                                                                          \
+  } while (0)
+
 void ac_search(const ACAutomaton *ac, const char *text, size_t len,
                ACMatchCallback callback, void *user_data) {
   if (!ac->built || len == 0) {
     return;
   }
 
-  int32_t state = 0;
   const int pf_dist = ac->prefetch_distance;
 
-  for (size_t i = 0; i < len; i++) {
-    uint8_t c = (uint8_t)text[i];
-
-    /* Follow failure links until we find a transition or reach root */
-    while (state != 0 && ac->states[state].goto_table[c] == -1) {
-      state = ac->states[state].fail;
-    }
-
-    int32_t next = ac->states[state].goto_table[c];
-    state = (next != -1) ? next : 0;
-
-    /* Prefetch ahead using runtime-tuned distance.
-     * On Intel Ice Lake (large L2): distance=2, hint=L1
-     * On AMD Zen 3/4 (strong HW prefetch): distance=1, hint=L2 */
-    if (i + pf_dist < len) {
-      uint8_t future_c = (uint8_t)text[i + pf_dist];
-      int32_t peek = ac->states[state].goto_table[future_c];
-      if (peek != -1) {
-        if (ac->prefetch_hint == 0) {
-          __builtin_prefetch(&ac->states[peek].goto_table, 0, 3); /* L1 */
-        } else {
-          __builtin_prefetch(&ac->states[peek].goto_table, 0, 1); /* L2 */
-        }
-      }
-    }
-
-    /* Report all matches at this position */
-    int32_t match_state = state;
-    while (match_state != 0) {
-      if (ac->states[match_state].is_final) {
-        ACMatch match;
-        match.position = i;
-        match.pattern_id = ac->states[match_state].pattern_id;
-        match.length = ac->states[match_state].depth;
-
-        if (!callback(&match, user_data)) {
-          return; /* Callback requested stop */
-        }
-      }
-      match_state = ac->states[match_state].output;
-    }
+  /* Dispatch once — no branch inside the hot loop */
+  if (ac->prefetch_hint == 0) {
+    AC_SEARCH_LOOP(ac, text, len, callback, user_data, pf_dist, 3); /* L1 */
+  } else {
+    AC_SEARCH_LOOP(ac, text, len, callback, user_data, pf_dist, 1); /* L2 */
   }
 }
 
