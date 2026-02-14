@@ -19,6 +19,8 @@ import {
     Globe,
     AlertTriangle,
     ChevronRight,
+    Menu,
+    X,
 } from "lucide-react";
 
 export default function DevelopersPage() {
@@ -28,6 +30,7 @@ export default function DevelopersPage() {
     const [name, setName] = useState("");
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const router = useRouter();
 
     async function handleSubmit(e: React.FormEvent) {
@@ -98,7 +101,7 @@ export default function DevelopersPage() {
         <main className="min-h-screen">
             {/* Nav */}
             <nav className="fixed top-0 left-0 right-0 z-50 nav-bar">
-                <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
+                <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
                     <Link href="/" className="flex items-center gap-2.5">
                         <div className="w-7 h-7 rounded-md flex items-center justify-center" style={{ background: "#e8e8e8" }}>
                             <span className="text-xs font-bold" style={{ color: "#141414" }}>P</span>
@@ -107,14 +110,33 @@ export default function DevelopersPage() {
                     </Link>
                     <div className="flex items-center gap-1">
                         <Link href="/" className="text-[13px] text-[var(--color-text-secondary)] hover:text-[var(--color-text)] transition-colors px-3 py-1.5 rounded-md hover:bg-[var(--color-bg-elevated)] hidden sm:block">Home</Link>
-                        <Link href="/community" className="text-[13px] text-[var(--color-text-secondary)] hover:text-[var(--color-text)] transition-colors px-3 py-1.5 rounded-md hover:bg-[var(--color-bg-elevated)] hidden sm:block">Community</Link>
+                        <Link href="/docs" className="text-[13px] text-[var(--color-text-secondary)] hover:text-[var(--color-text)] transition-colors px-3 py-1.5 rounded-md hover:bg-[var(--color-bg-elevated)] hidden sm:block">Docs</Link>
                         <Link href="/developers" className="text-[13px] text-[var(--color-text)] transition-colors px-3 py-1.5 rounded-md bg-[var(--color-bg-elevated)] hidden sm:block">Developers</Link>
-                        <Link href="/playground" className="text-[13px] font-medium px-4 py-1.5 rounded-md transition-opacity hover:opacity-90 ml-2" style={{ background: "#e8e8e8", color: "#141414" }}>Playground</Link>
+                        <Link href="/playground" className="text-[13px] font-medium px-4 py-1.5 rounded-md transition-opacity hover:opacity-90 ml-2 hidden sm:inline-flex" style={{ background: "#e8e8e8", color: "#141414" }}>Playground</Link>
+                        <button
+                            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                            className="sm:hidden p-2 text-[var(--color-text-secondary)] hover:text-[var(--color-text)] transition-colors ml-1"
+                            aria-label="Toggle menu"
+                        >
+                            {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+                        </button>
                     </div>
                 </div>
+                {mobileMenuOpen && (
+                    <div className="sm:hidden border-t border-[var(--color-border)] bg-[var(--color-bg)]/95 backdrop-blur-xl">
+                        <div className="px-4 py-3 space-y-1">
+                            <Link href="/" onClick={() => setMobileMenuOpen(false)} className="block text-[14px] text-[var(--color-text-secondary)] hover:text-[var(--color-text)] py-2 px-3 rounded-lg hover:bg-[var(--color-bg-elevated)] transition-colors">Home</Link>
+                            <Link href="/docs" onClick={() => setMobileMenuOpen(false)} className="block text-[14px] text-[var(--color-text-secondary)] hover:text-[var(--color-text)] py-2 px-3 rounded-lg hover:bg-[var(--color-bg-elevated)] transition-colors">Docs</Link>
+                            <Link href="/developers" onClick={() => setMobileMenuOpen(false)} className="block text-[14px] text-[var(--color-text)] py-2 px-3 rounded-lg bg-[var(--color-bg-elevated)]">Developers</Link>
+                            <div className="border-t border-[var(--color-border)] pt-2 mt-2">
+                                <Link href="/playground" onClick={() => setMobileMenuOpen(false)} className="block text-[14px] font-medium py-2 px-3 rounded-lg transition-colors" style={{ color: '#e8e8e8' }}>Playground →</Link>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </nav>
 
-            <div className="pt-32 pb-20 px-6">
+            <div className="pt-24 sm:pt-32 pb-14 sm:pb-20 px-4 sm:px-6">
                 <div className="max-w-5xl mx-auto">
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
 
@@ -150,7 +172,7 @@ export default function DevelopersPage() {
                                 </pre>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-2.5">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                                 {features.map((f) => (
                                     <div key={f.title} className="card p-4">
                                         <div className="flex items-center gap-2.5 mb-2">
@@ -263,7 +285,7 @@ export default function DevelopersPage() {
             </div>
 
             {/* Performance Guidance Section */}
-            <div className="px-6 pb-20">
+            <div className="px-4 sm:px-6 pb-14 sm:pb-20">
                 <div className="max-w-5xl mx-auto">
                     <div className="text-center mb-12">
                         <h2 className="text-2xl sm:text-3xl font-bold tracking-tight mb-3">Choose Your Integration</h2>

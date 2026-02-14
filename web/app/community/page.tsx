@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import {
     ArrowRight,
@@ -16,6 +17,8 @@ import {
     Bug,
     Lightbulb,
     Github,
+    Menu,
+    X,
 } from "lucide-react";
 
 const ways = [
@@ -87,11 +90,13 @@ const guidelines = [
 ];
 
 export default function CommunityPage() {
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
     return (
         <main className="min-h-screen">
             {/* Nav */}
             <nav className="fixed top-0 left-0 right-0 z-50 nav-bar">
-                <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
+                <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
                     <Link href="/" className="flex items-center gap-2.5">
                         <div
                             className="w-7 h-7 rounded-md flex items-center justify-center"
@@ -124,13 +129,32 @@ export default function CommunityPage() {
                         </Link>
                         <Link
                             href="/playground"
-                            className="text-[13px] font-medium px-4 py-1.5 rounded-md transition-opacity hover:opacity-90 ml-2"
+                            className="text-[13px] font-medium px-4 py-1.5 rounded-md transition-opacity hover:opacity-90 ml-2 hidden sm:inline-flex"
                             style={{ background: "#e8e8e8", color: "#141414" }}
                         >
                             Playground
                         </Link>
+                        <button
+                            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                            className="sm:hidden p-2 text-[var(--color-text-secondary)] hover:text-[var(--color-text)] transition-colors ml-1"
+                            aria-label="Toggle menu"
+                        >
+                            {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+                        </button>
                     </div>
                 </div>
+                {mobileMenuOpen && (
+                    <div className="sm:hidden border-t border-[var(--color-border)] bg-[var(--color-bg)]/95 backdrop-blur-xl">
+                        <div className="px-4 py-3 space-y-1">
+                            <Link href="/" onClick={() => setMobileMenuOpen(false)} className="block text-[14px] text-[var(--color-text-secondary)] hover:text-[var(--color-text)] py-2 px-3 rounded-lg hover:bg-[var(--color-bg-elevated)] transition-colors">Home</Link>
+                            <Link href="/community" onClick={() => setMobileMenuOpen(false)} className="block text-[14px] text-[var(--color-text)] py-2 px-3 rounded-lg bg-[var(--color-bg-elevated)]">Community</Link>
+                            <Link href="/developers" onClick={() => setMobileMenuOpen(false)} className="block text-[14px] text-[var(--color-text-secondary)] hover:text-[var(--color-text)] py-2 px-3 rounded-lg hover:bg-[var(--color-bg-elevated)] transition-colors">Developers</Link>
+                            <div className="border-t border-[var(--color-border)] pt-2 mt-2">
+                                <Link href="/playground" onClick={() => setMobileMenuOpen(false)} className="block text-[14px] font-medium py-2 px-3 rounded-lg transition-colors" style={{ color: '#e8e8e8' }}>Playground →</Link>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </nav>
 
             {/* Hero */}
