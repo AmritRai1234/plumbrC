@@ -17,6 +17,13 @@ RUN make OPT_FLAGS="-O3 -march=x86-64 -flto -fomit-frame-pointer -fno-plt -ffunc
     make server OPT_FLAGS="-O3 -march=x86-64 -flto -fomit-frame-pointer -fno-plt -ffunction-sections -fdata-sections" && \
     make grpc
 
+# Collect ALL shared library dependencies for plumbr-grpc into a staging dir
+RUN mkdir -p /grpc-libs && \
+    ldd /app/build/bin/plumbr-grpc | awk '/=>/ {print $3}' | sort -u | while read lib; do \
+    cp -L "$lib" /grpc-libs/ 2>/dev/null || true; \
+    done && \
+    echo "=== gRPC libs ===" && ls -la /grpc-libs/
+
 # ============================================
 # Stage 2: Build the Next.js app
 # ============================================
@@ -52,15 +59,8 @@ COPY --from=c-builder /app/build/bin/plumbr-server ./build/bin/plumbr-server
 COPY --from=c-builder /app/build/bin/plumbr-grpc ./build/bin/plumbr-grpc
 RUN chmod +x ./build/bin/plumbr ./build/bin/plumbr-server ./build/bin/plumbr-grpc
 
-# Copy gRPC/protobuf shared libraries from builder to guarantee exact ABI match
-COPY --from=c-builder /usr/lib/libgrpc*.so* /usr/lib/
-COPY --from=c-builder /usr/lib/libgpr.so* /usr/lib/
-COPY --from=c-builder /usr/lib/libprotobuf.so* /usr/lib/
-COPY --from=c-builder /usr/lib/libupb*.so* /usr/lib/
-COPY --from=c-builder /usr/lib/libaddress_sorting.so* /usr/lib/
-COPY --from=c-builder /usr/lib/libre2.so* /usr/lib/
-COPY --from=c-builder /usr/lib/libabsl*.so* /usr/lib/
-RUN ldconfig /usr/lib 2>/dev/null || true
+# Copy ALL gRPC shared library deps from builder's ldd-collected staging dir
+COPY --from=c-builder /grpc-libs/ /usr/lib/
 
 # Copy pattern files
 COPY --from=c-builder /app/patterns/ ./patterns/
