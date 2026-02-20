@@ -51,6 +51,10 @@ void *arena_alloc(Arena *arena, size_t size) {
 }
 
 void arena_reset(Arena *arena) {
+  /* SECURITY: Zero memory to prevent stale sensitive data exposure */
+  if (arena->used > 0) {
+    memset(arena->base, 0, arena->used);
+  }
   arena->used = 0;
   /* Don't reset high_water - useful for stats */
 }

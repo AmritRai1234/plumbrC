@@ -11,6 +11,7 @@
 #include "redactor.h"
 
 #include <dirent.h>
+#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -53,6 +54,44 @@ libplumbr_t *libplumbr_new(const libplumbr_config_t *config) {
   if (config && config->pattern_dir) {
     loaded += patterns_load_directory(p->patterns, config->pattern_dir);
   }
+
+  /* Load compliance patterns if requested */
+  if (config && config->compliance) {
+    const char *comp = config->compliance;
+    bool load_hipaa = false, load_pci = false;
+    bool load_gdpr = false, load_soc2 = false;
+
+    if (strcmp(comp, "all") == 0) {
+      load_hipaa = load_pci = load_gdpr = load_soc2 = true;
+    } else {
+      char buf[256];
+      snprintf(buf, sizeof(buf), "%s", comp);
+      char *tok = strtok(buf, ",");
+      while (tok) {
+        if (strcmp(tok, "hipaa") == 0)
+          load_hipaa = true;
+        else if (strcmp(tok, "pci") == 0)
+          load_pci = true;
+        else if (strcmp(tok, "gdpr") == 0)
+          load_gdpr = true;
+        else if (strcmp(tok, "soc2") == 0)
+          load_soc2 = true;
+        tok = strtok(NULL, ",");
+      }
+    }
+
+    if (load_hipaa)
+      loaded +=
+          patterns_load_file(p->patterns, "patterns/compliance/hipaa.txt");
+    if (load_pci)
+      loaded +=
+          patterns_load_file(p->patterns, "patterns/compliance/pci_dss.txt");
+    if (load_gdpr)
+      loaded += patterns_load_file(p->patterns, "patterns/compliance/gdpr.txt");
+    if (load_soc2)
+      loaded += patterns_load_file(p->patterns, "patterns/compliance/soc2.txt");
+  }
+
   if (!loaded) {
     /* Use defaults */
     patterns_add_defaults(p->patterns);
@@ -135,7 +174,8 @@ int libplumbr_redact_inplace(libplumbr_t *p, char *buffer, size_t len,
   if (out_len >= capacity)
     return -1;
 
-  memcpy(buffer, result, out_len);
+  /* SECURITY: Use memmove — buffer may overlap with result */
+  memmove(buffer, result, out_len);
   buffer[out_len] = '\0';
 
   /* Update stats */
@@ -193,17 +233,86 @@ size_t libplumbr_pattern_count(const libplumbr_t *p) {
   return patterns_count(p->patterns);
 }
 
-const char *libplumbr_version(void) {
-  static char version[32];
-  snprintf(version, sizeof(version), "%d.%d.%d", PLUMBR_VERSION_MAJOR,
-           PLUMBR_VERSION_MINOR, PLUMBR_VERSION_PATCH);
-  return version;
+/* SECURITY: Thread-safe version string using pthread_once */
+static char g_lib_version[32];
+static pthread_once_t g_lib_version_once = PTHREAD_ONCE_INIT;
+static void init_lib_version(void) {
+  snprintf(g_lib_version, sizeof(g_lib_version), "%d.%d.%d",
+           PLUMBR_VERSION_MAJOR, PLUMBR_VERSION_MINOR, PLUMBR_VERSION_PATCH);
 }
+const char *libplumbr_version(void) {
+  pthread_once(&g_lib_version_once, init_lib_version);
+  return g_lib_version;
+}
+
+char *libplumbr_redact_buffer(libplumbr_t *p, const char *input,
+                              size_t input_len, size_t *output_len) {
+  if (!p || !input || input_len == 0)
+    return NULL;
+
+  /* Worst case: each line could expand (redaction tags are fixed-size).
+   * Allocate 2x input as a safe upper bound. */
+  size_t cap = input_len * 2 + 1;
+  char *output = malloc(cap);
+  if (!output)
+    return NULL;
+
+  size_t out_pos = 0;
+  const char *ptr = input;
+  const char *end = input + input_len;
+
+  while (ptr < end) {
+    /* Find end of current line */
+    const char *nl = memchr(ptr, '\n', (size_t)(end - ptr));
+    size_t line_len = nl ? (size_t)(nl - ptr) : (size_t)(end - ptr);
+
+    /* Redact this line */
+    size_t redacted_len;
+    const char *redacted =
+        redactor_process(p->redactor, ptr, line_len, &redacted_len);
+
+    /* Ensure output buffer has space */
+    if (out_pos + redacted_len + 1 >= cap) {
+      cap = (out_pos + redacted_len + 1) * 2;
+      char *tmp = realloc(output, cap);
+      if (!tmp) {
+        free(output);
+        return NULL;
+      }
+      output = tmp;
+    }
+
+    /* Copy redacted line to output */
+    memcpy(output + out_pos, redacted, redacted_len);
+    out_pos += redacted_len;
+
+    /* Add newline if original had one */
+    if (nl) {
+      output[out_pos++] = '\n';
+      ptr = nl + 1;
+    } else {
+      ptr = end;
+    }
+
+    /* Update stats */
+    p->stats.lines_processed++;
+    p->stats.bytes_processed += line_len;
+  }
+
+  output[out_pos] = '\0';
+  if (output_len)
+    *output_len = out_pos;
+
+  return output;
+}
+
+void libplumbr_free_string(char *str) { free(str); }
 
 void libplumbr_free(libplumbr_t *p) {
   if (!p)
     return;
 
+  redactor_destroy(p->redactor);
   if (p->patterns) {
     patterns_destroy(p->patterns);
   }

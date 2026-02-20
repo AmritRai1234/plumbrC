@@ -35,7 +35,12 @@ typedef struct PatternSet {
   Pattern *patterns;
   size_t count;
   size_t capacity;
-  ACAutomaton *automaton;
+  ACAutomaton *automaton; /* Full DFA — all patterns (cold path) */
+  ACAutomaton *hot_ac;    /* L1-resident DFA for top N patterns */
+  size_t hot_count;       /* Number of patterns in hot set */
+#if PLUMBR_TWO_TIER_AC
+  ACAutomaton *sentinel; /* L1-resident tier-1 AC for fast line rejection */
+#endif
   Arena *arena;
   bool built;
 } PatternSet;

@@ -40,11 +40,17 @@ typedef struct {
   _Atomic size_t lines_modified;
   _Atomic size_t patterns_matched;
   _Atomic size_t lines_prefiltered; /* Lines skipped by SSE 4.2 filter */
+#if PLUMBR_TWO_TIER_AC
+  _Atomic size_t lines_sentinel_filtered; /* Lines skipped by tier-1 sentinel */
+#endif
 } Redactor;
 
 /* Initialize redactor */
 Redactor *redactor_create(Arena *arena, PatternSet *patterns,
                           size_t output_capacity);
+
+/* Free PCRE2 resources (match data + match context) */
+void redactor_destroy(Redactor *r);
 
 /* Process line (returns pointer to output, which may be input if unchanged) */
 const char *redactor_process(Redactor *r, const char *line, size_t len,

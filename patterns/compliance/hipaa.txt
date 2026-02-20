@@ -1,0 +1,47 @@
+# HIPAA Compliance Patterns
+# Health Insurance Portability and Accountability Act
+# Covers PHI (Protected Health Information) identifiers
+# Format: name|literal|regex|replacement
+
+# Medical Record Number (MRN)
+hipaa_mrn|MRN|MRN[\s:=]+[A-Z0-9]{6,12}\b|[REDACTED:mrn]
+hipaa_mrn_lower|mrn|mrn[\s:=]+[A-Z0-9]{6,12}\b|[REDACTED:mrn]
+hipaa_medical_record_id|medical_record_id|medical_record_id[\s:=]+[A-Z0-9]+|[REDACTED:mrn]
+hipaa_medical_record_number|medical_record_number|medical_record_number[\s:=]+[A-Z0-9]+|[REDACTED:mrn]
+
+# National Provider Identifier (NPI) — 10-digit number
+hipaa_npi|NPI|NPI[\s:=]+[0-9]{10}\b|[REDACTED:npi]
+hipaa_npi_lower|npi|npi[\s:=]+[0-9]{10}\b|[REDACTED:npi]
+hipaa_provider_id|provider_id|provider_id[\s:=]+[0-9]{10}\b|[REDACTED:npi]
+
+# DEA Registration Number (2 letters + 7 digits)
+hipaa_dea|DEA|DEA[\s:=]+[A-Z]{2}[0-9]{7}\b|[REDACTED:dea]
+hipaa_dea_number|dea_number|dea_number[\s:=]+[A-Z]{2}[0-9]{7}\b|[REDACTED:dea]
+
+# ICD-10 Diagnosis Codes
+hipaa_icd10|ICD|ICD-?10[\s:=]+[A-Z][0-9]{2}\.?[0-9A-Z]{0,4}\b|[REDACTED:icd10]
+hipaa_diagnosis|diagnosis|diagnosis[\s:=]+[A-Z][0-9]{2}\.?[0-9A-Z]{0,4}\b|[REDACTED:diagnosis]
+hipaa_diagnosis_code|diagnosis_code|diagnosis_code[\s:=]+[A-Z][0-9]{2}\.?[0-9A-Z]{0,4}\b|[REDACTED:diagnosis]
+
+# Health Plan Beneficiary ID
+hipaa_hicn|HICN|HICN[\s:=]+[0-9A-Z]+|[REDACTED:hicn]
+hipaa_beneficiary_id|beneficiary_id|beneficiary_id[\s:=]+[0-9A-Z]+|[REDACTED:beneficiary]
+hipaa_member_id|member_id|member_id[\s:=]+[A-Z0-9]+|[REDACTED:member_id]
+hipaa_subscriber_id|subscriber_id|subscriber_id[\s:=]+[A-Z0-9]+|[REDACTED:subscriber]
+hipaa_policy_number|policy_number|policy_number[\s:=]+[A-Z0-9]+|[REDACTED:policy]
+hipaa_policy_id|policy_id|policy_id[\s:=]+[A-Z0-9]+|[REDACTED:policy]
+
+# Lab Results and Vitals
+hipaa_glucose|glucose|glucose[\s:=]+[0-9]+\.?[0-9]*\s*mg|[REDACTED:lab_result]
+hipaa_a1c|A1C|[Hh][Bb]?A1[Cc][\s:=]+[0-9]+\.?[0-9]*%?|[REDACTED:lab_result]
+hipaa_bp|blood_pressure|blood[\s_]?pressure[\s:=]+[0-9]{2,3}/[0-9]{2,3}|[REDACTED:vitals]
+hipaa_heart_rate|heart_rate|heart[\s_]?rate[\s:=]+[0-9]{2,3}|[REDACTED:vitals]
+
+# Patient ID / Account
+hipaa_patient_id|patient_id|patient_id[\s:=]+[A-Z0-9]+|[REDACTED:patient_id]
+hipaa_patient_number|patient_number|patient_number[\s:=]+[A-Z0-9]+|[REDACTED:patient_id]
+hipaa_encounter_id|encounter_id|encounter_id[\s:=]+[A-Z0-9]+|[REDACTED:encounter]
+
+# Prescription / Rx
+hipaa_prescription_id|prescription_id|prescription_id[\s:=]+[A-Z0-9]+|[REDACTED:rx]
+hipaa_rx_num|Rx|Rx[\s:#]+[0-9]+|[REDACTED:rx]

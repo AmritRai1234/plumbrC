@@ -47,6 +47,18 @@ static std::chrono::steady_clock::time_point g_start_time;
 
 static thread_local libplumbr_t *tl_plumbr = nullptr;
 
+/* SECURITY: Ensure thread_local plumbr instances are freed on thread exit
+ * to prevent ~128MB memory leak per gRPC thread on shutdown. */
+struct PlumbrCleaner {
+  ~PlumbrCleaner() {
+    if (tl_plumbr) {
+      libplumbr_free(tl_plumbr);
+      tl_plumbr = nullptr;
+    }
+  }
+};
+static thread_local PlumbrCleaner tl_cleaner;
+
 static libplumbr_t *get_plumbr() {
   if (!tl_plumbr) {
     tl_plumbr = libplumbr_new(&g_config);
@@ -267,6 +279,15 @@ int main(int argc, char *argv[]) {
   PlumbrServiceImpl service;
 
   ServerBuilder builder;
+  /*
+   * SECURITY NOTE: Using InsecureServerCredentials here.
+   * For production deployments:
+   * 1. Use grpc::SslServerCredentials() with proper TLS certs
+   * 2. Add per-RPC authentication (e.g., metadata-based API key or mTLS)
+   * Example:
+   *   auto creds = grpc::SslServerCredentials(ssl_options);
+   *   builder.AddListeningPort(addr, creds);
+   */
   builder.AddListeningPort(addr, grpc::InsecureServerCredentials());
   builder.RegisterService(&service);
 

@@ -245,7 +245,7 @@ export default function Home() {
         <div className="max-w-2xl mx-auto text-center">
           <div className="inline-flex items-center gap-2 text-[13px] text-[var(--color-text-secondary)] border border-[var(--color-border)] rounded-full px-4 py-1.5 mb-8">
             <div className="w-1.5 h-1.5 rounded-full bg-[var(--color-green)] animate-pulse-dot" />
-            Open Source · 702 Patterns · Pure C · AMD Optimized
+            Open Source · 793 Patterns · Pure C · AMD Optimized
           </div>
 
           <h1 className="text-4xl sm:text-5xl lg:text-[56px] font-bold tracking-tight leading-[1.1] mb-5">
@@ -255,7 +255,7 @@ export default function Home() {
           </h1>
 
           <p className="text-base text-[var(--color-text-secondary)] max-w-md mx-auto mb-10 leading-relaxed">
-            Scan log streams for AWS keys, passwords, tokens, and 700+ other patterns. Up to 5M lines/sec with AVX2 SIMD on AMD Ryzen.
+            Scan log streams for AWS keys, passwords, tokens, and 700+ other patterns. Up to 5M lines/sec with AVX2 SIMD on AMD Ryzen. Free for open-source and non-commercial use.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-16">
@@ -284,9 +284,9 @@ export default function Home() {
         <div className="max-w-5xl mx-auto grid grid-cols-3 md:grid-cols-5">
           {[
             { icon: <Zap size={20} />, value: <>5M+</>, label: "lines/sec (14 patterns)" },
-            { icon: <Cpu size={20} />, value: <><Counter end={2} />.6M</>, label: "lines/sec (702 patterns)" },
-            { icon: <Search size={20} />, value: <Counter end={702} />, label: "detection patterns" },
-            { icon: <Timer size={20} />, value: <>364</>, label: "MB/s throughput" },
+            { icon: <Cpu size={20} />, value: <><Counter end={3} />.3M</>, label: "lines/sec (702 patterns)" },
+            { icon: <Search size={20} />, value: <Counter end={793} />, label: "detection patterns" },
+            { icon: <Timer size={20} />, value: <>175</>, label: "MB/s throughput" },
             { icon: <Brain size={20} />, value: "0", label: "heap allocs" },
           ].map((stat, i) => (
             <div key={i} className="text-center py-8 px-4">
@@ -327,7 +327,7 @@ export default function Home() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            <FeatureCard icon={<Zap size={18} />} title="O(n) Multi-Pattern" desc="Aho-Corasick DFA scans for all 702 patterns in a single pass. Linear time regardless of pattern count." />
+            <FeatureCard icon={<Zap size={18} />} title="O(n) Multi-Pattern" desc="Aho-Corasick DFA scans for all 793 patterns in a single pass. Linear time regardless of pattern count." />
             <FeatureCard icon={<Cpu size={18} />} title="AVX2 + SSE 4.2 SIMD" desc="Hardware-accelerated byte scanning and line pre-filtering. Optimized for AMD Ryzen, works on any x86-64." />
             <FeatureCard icon={<HardDrive size={18} />} title="Zero Allocations" desc="Arena allocator via mmap. No malloc, no free, no GC in the processing hot path." />
             <FeatureCard icon={<Shield size={18} />} title="ReDoS Protected" desc="Match limits on every regex. No catastrophic backtracking, even with adversarial input." />
@@ -341,8 +341,8 @@ export default function Home() {
       <section id="patterns" className="py-20 px-6 divider">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-2xl font-semibold mb-3">702 detection patterns</h2>
-            <p className="text-sm text-[var(--color-text-secondary)]">12 categories. Load all, or pick what you need.</p>
+            <h2 className="text-2xl font-semibold mb-3">793 detection patterns</h2>
+            <p className="text-sm text-[var(--color-text-secondary)]">12 categories + 4 compliance profiles (HIPAA, PCI, GDPR, SOC2). Load all, or pick what you need.</p>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
@@ -402,14 +402,14 @@ export default function Home() {
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-[12px] text-[var(--color-text-secondary)]">Single-threaded</span>
-                  <span className="text-[14px] font-semibold" style={{ color: '#e8e8e8' }}>1.1M lines/sec</span>
+                  <span className="text-[14px] font-semibold" style={{ color: '#e8e8e8' }}>2.1M lines/sec</span>
                 </div>
-                <div className="w-full bg-[var(--color-bg-elevated)] rounded-full h-1.5"><div className="h-1.5 rounded-full" style={{ width: '22%', background: '#e8e8e8' }} /></div>
+                <div className="w-full bg-[var(--color-bg-elevated)] rounded-full h-1.5"><div className="h-1.5 rounded-full" style={{ width: '42%', background: '#e8e8e8' }} /></div>
                 <div className="flex items-center justify-between">
                   <span className="text-[12px] text-[var(--color-text-secondary)]">Multi-threaded (8T)</span>
-                  <span className="text-[14px] font-semibold" style={{ color: '#e8e8e8' }}>2.6M lines/sec</span>
+                  <span className="text-[14px] font-semibold" style={{ color: '#e8e8e8' }}>3.3M lines/sec</span>
                 </div>
-                <div className="w-full bg-[var(--color-bg-elevated)] rounded-full h-1.5"><div className="h-1.5 rounded-full" style={{ width: '52%', background: '#e8e8e8' }} /></div>
+                <div className="w-full bg-[var(--color-bg-elevated)] rounded-full h-1.5"><div className="h-1.5 rounded-full" style={{ width: '66%', background: '#e8e8e8' }} /></div>
               </div>
             </div>
           </div>
@@ -424,9 +424,9 @@ export default function Home() {
             </div>
             <div className="card p-5 text-center">
               <Package size={20} className="mx-auto text-[var(--color-text-secondary)] mb-3" />
-              <div className="text-lg font-bold mb-0.5" style={{ color: '#e8e8e8' }}>83K lines/sec</div>
-              <div className="text-[11px] text-[var(--color-text-tertiary)] mb-2">Python Package</div>
-              <p className="text-[11px] text-[var(--color-text-secondary)]">Same C engine via ctypes. No network overhead. pip install plumbrc.</p>
+              <div className="text-lg font-bold mb-0.5" style={{ color: '#e8e8e8' }}>2M lines/sec</div>
+              <div className="text-[11px] text-[var(--color-text-tertiary)] mb-2">Python Package (bulk API)</div>
+              <p className="text-[11px] text-[var(--color-text-secondary)]">Same C engine via ctypes. Bulk API for max throughput. pip install plumbrc.</p>
             </div>
             <div className="card p-5 text-center">
               <Globe size={20} className="mx-auto text-[var(--color-text-secondary)] mb-3" />
@@ -554,8 +554,8 @@ print(p.stats)          # {'lines_processed': 1, ...}`}
           {/* Performance Stats */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
             {[
-              { icon: <Zap size={16} />, title: "83K lines/sec", desc: "C engine under the hood" },
-              { icon: <Timer size={16} />, title: "12 µs", desc: "Per line" },
+              { icon: <Zap size={16} />, title: "2M lines/sec", desc: "Bulk API with C engine" },
+              { icon: <Timer size={16} />, title: "0.5 µs", desc: "Per line (bulk)" },
               { icon: <Package size={16} />, title: "Zero deps", desc: "Pure ctypes FFI" },
             ].map((item) => (
               <div key={item.title} className="card p-4 text-center hover:border-[var(--color-border-light)]">

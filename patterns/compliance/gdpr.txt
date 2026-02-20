@@ -1,0 +1,46 @@
+# GDPR Compliance Patterns
+# General Data Protection Regulation (EU)
+# Covers personal data identifiers specific to EU/EEA
+# Format: name|literal|regex|replacement
+
+# IBAN — International Bank Account Number
+gdpr_iban_labeled|IBAN|IBAN[\s:=]*[A-Z]{2}[0-9]{2}\s?[A-Z0-9]{4}\s?[A-Z0-9]{4}\s?[A-Z0-9]{4}\s?[A-Z0-9]{0,14}|[REDACTED:iban]
+gdpr_iban_de|DE|DE[0-9]{2}[0-9]{18}\b|[REDACTED:iban]
+gdpr_iban_fr|FR|FR[0-9]{2}[0-9A-Z]{23}\b|[REDACTED:iban]
+gdpr_iban_gb|GB|GB[0-9]{2}[A-Z]{4}[0-9]{14}\b|[REDACTED:iban]
+
+# UK National Insurance Number (AB 12 34 56 C)
+gdpr_uk_nino_labeled|NINO|NINO[\s:=]*[A-CEGHJ-PR-TW-Z]{2}[0-9]{6}[A-D]\b|[REDACTED:uk_nino]
+gdpr_uk_ni|national_insurance|national_insurance[\s:=]*[A-CEGHJ-PR-TW-Z]{2}[0-9]{6}[A-D]\b|[REDACTED:uk_nino]
+
+# German Tax Number
+gdpr_de_steuer|Steuernummer|Steuernummer[\s:=]+[0-9]{10,11}|[REDACTED:de_tax]
+
+# French INSEE / Social Security (15 digits)
+gdpr_fr_insee|INSEE|INSEE[\s:=]+[12][0-9]{14}|[REDACTED:fr_insee]
+
+# Spanish DNI/NIE
+gdpr_es_dni|DNI|DNI[\s:=]+[0-9]{8}[A-Z]\b|[REDACTED:es_dni]
+gdpr_es_nie|NIE|NIE[\s:=]+[XYZ][0-9]{7}[A-Z]\b|[REDACTED:es_nie]
+
+# Italian Codice Fiscale (16 alphanumeric chars)
+gdpr_it_cf|codice_fiscale|codice_fiscale[\s:=]+[A-Z]{6}[0-9]{2}[A-Z][0-9]{2}[A-Z][0-9]{3}[A-Z]\b|[REDACTED:it_fiscal]
+
+# EU VAT Numbers
+gdpr_vat_de|DE|DE[0-9]{9}\b|[REDACTED:vat]
+gdpr_vat_fr|FR|FR[0-9A-Z]{2}[0-9]{9}\b|[REDACTED:vat]
+gdpr_vat_gb_num|GB|GB[0-9]{9}\b|[REDACTED:vat]
+gdpr_vat_es|ES|ES[A-Z0-9][0-9]{7}[A-Z0-9]\b|[REDACTED:vat]
+gdpr_vat_it|IT|IT[0-9]{11}\b|[REDACTED:vat]
+gdpr_vat_nl|NL|NL[0-9]{9}B[0-9]{2}\b|[REDACTED:vat]
+
+# GDPR-Specific Field Labels
+gdpr_data_subject_id|data_subject_id|data_subject_id[\s:=]+[^\s]+|[REDACTED:data_subject]
+gdpr_data_subject_name|data_subject_name|data_subject_name[\s:=]+[^\s]+|[REDACTED:data_subject]
+gdpr_consent_id|consent_id|consent_id[\s:=]+[A-Za-z0-9-]+|[REDACTED:consent]
+gdpr_consent_token|consent_token|consent_token[\s:=]+[A-Za-z0-9-]+|[REDACTED:consent]
+gdpr_dpo_email|dpo_email|dpo_email[\s:=]+[^\s]+|[REDACTED:dpo]
+gdpr_dpo_contact|dpo_contact|dpo_contact[\s:=]+[^\s]+|[REDACTED:dpo]
+
+# EU Driving License
+gdpr_eu_dl|driving_licence|driving_licen[sc]e[\s:=]+[A-Z0-9]+|[REDACTED:driving_license]

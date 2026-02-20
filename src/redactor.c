@@ -11,6 +11,7 @@
 #include "config.h"
 #include "sse42_filter.h"
 
+#include <stdio.h>
 #include <string.h>
 
 /* Max matches per line - use config constant for stack safety */
@@ -66,6 +67,9 @@ Redactor *redactor_create(Arena *arena, PatternSet *patterns,
   r->lines_modified = 0;
   r->patterns_matched = 0;
   r->lines_prefiltered = 0;
+#if PLUMBR_TWO_TIER_AC
+  r->lines_sentinel_filtered = 0;
+#endif
 
   /* Build SSE 4.2 trigger cache from AC root state */
   r->use_sse42 = sse42_available();
@@ -79,6 +83,21 @@ Redactor *redactor_create(Arena *arena, PatternSet *patterns,
   return r;
 }
 
+void redactor_destroy(Redactor *r) {
+  if (!r)
+    return;
+  /* Free PCRE2 match data (heap-allocated, not arena) */
+  if (r->match_data) {
+    for (size_t i = 0; i < r->num_patterns; i++) {
+      if (r->match_data[i])
+        pcre2_match_data_free(r->match_data[i]);
+    }
+  }
+  /* Free PCRE2 match context (heap-allocated) */
+  if (r->match_ctx)
+    pcre2_match_context_free(r->match_ctx);
+}
+
 /* Compare function for sorting matches by start position */
 static int match_compare(const void *a, const void *b) {
   const MatchLocation *ma = a;
@@ -90,42 +109,19 @@ static int match_compare(const void *a, const void *b) {
   return 0;
 }
 
-const char *redactor_process(Redactor *r, const char *line, size_t len,
-                             size_t *out_len) {
-  r->lines_scanned++;
+/* Forward declaration */
+static const char *redactor_apply(Redactor *r, const char *line, size_t len,
+                                  MatchLocation *verified, size_t num_verified,
+                                  size_t *out_len);
 
-  if (PLUMBR_UNLIKELY(len == 0)) {
-    *out_len = 0;
-    return line;
-  }
-
-  /* Phase 0: SSE 4.2 pre-filter — skip lines without trigger chars */
-  if (r->use_sse42 && r->trigger_count > 0) {
-    if (!sse42_has_triggers(r->triggers, r->trigger_count, line, len)) {
-      /* No trigger characters found — impossible to have any AC matches */
-      r->lines_prefiltered++;
-      *out_len = len;
-      return line;
-    }
-  }
-
-  /* Phase 1: AC scan for candidate positions */
-  ACMatch ac_matches[MAX_MATCHES_PER_LINE];
-  size_t num_ac_matches = ac_search_all(r->patterns->automaton, line, len,
-                                        ac_matches, MAX_MATCHES_PER_LINE);
-
-  /* Fast path: no candidates found */
-  if (num_ac_matches == 0) {
-    *out_len = len;
-    return line;
-  }
-
-  /* Phase 2: Verify each candidate with PCRE2 */
-  MatchLocation verified[MAX_MATCHES_PER_LINE];
+/* Verify AC match candidates with PCRE2 and collect verified matches.
+ * Returns the number of verified matches appended to 'verified'. */
+static size_t verify_ac_matches(Redactor *r, const char *line, size_t len,
+                                const ACMatch *ac_matches, size_t num_ac,
+                                MatchLocation *verified, size_t max_verified) {
   size_t num_verified = 0;
 
-  for (size_t i = 0; i < num_ac_matches && num_verified < MAX_MATCHES_PER_LINE;
-       i++) {
+  for (size_t i = 0; i < num_ac && num_verified < max_verified; i++) {
     const ACMatch *ac = &ac_matches[i];
     const Pattern *pat = patterns_get(r->patterns, ac->pattern_id);
 
@@ -140,34 +136,26 @@ const char *redactor_process(Redactor *r, const char *line, size_t len,
     pcre2_match_data *md = r->match_data[ac->pattern_id];
 
     /* Try to match near the AC hit position */
-    /* SECURITY: Safe arithmetic to prevent underflow */
     size_t search_start = 0;
     if (ac->position >= ac->length) {
       search_start = ac->position - ac->length;
     }
-
-    /* Allow some slack for regex context (safely) */
     if (search_start >= 10) {
       search_start -= 10;
     } else {
       search_start = 0;
     }
 
-    /* SECURITY: Use match context with limits.
-     * pcre2_jit_match uses JIT-compiled native code (3-10x faster).
-     * Falls back to pcre2_match if JIT wasn't compiled for this pattern. */
+    /* PCRE2 JIT with ReDoS limits */
     int rc = pcre2_jit_match(pat->regex, (PCRE2_SPTR)line, len, search_start, 0,
                              md, r->match_ctx);
     if (rc == PCRE2_ERROR_JIT_BADOPTION) {
-      /* JIT not available for this pattern — fallback to interpreter */
       rc = pcre2_match(pat->regex, (PCRE2_SPTR)line, len, search_start, 0, md,
                        r->match_ctx);
     }
 
     if (rc > 0) {
       PCRE2_SIZE *ovector = pcre2_get_ovector_pointer(md);
-
-      /* Check if match is valid (not past line end) */
       if (ovector[1] <= len) {
         verified[num_verified].start = ovector[0];
         verified[num_verified].end = ovector[1];
@@ -177,13 +165,89 @@ const char *redactor_process(Redactor *r, const char *line, size_t len,
       }
     }
   }
+  return num_verified;
+}
 
-  /* Fast path: no verified matches */
-  if (num_verified == 0) {
-    *out_len = len;
+const char *redactor_process(Redactor *r, const char *line, size_t len,
+                             size_t *out_len) {
+  r->lines_scanned++;
+
+  if (PLUMBR_UNLIKELY(len == 0)) {
+    *out_len = 0;
     return line;
   }
 
+  /* Phase 0: SSE 4.2 pre-filter — partial (16 trigger chars max).
+   * Sentinel provides safety net for patterns not covered. */
+  if (r->use_sse42 && r->trigger_count > 0) {
+    if (!sse42_has_triggers(r->triggers, r->trigger_count, line, len)) {
+#if PLUMBR_TWO_TIER_AC
+      if (r->patterns->sentinel &&
+          ac_search_has_match(r->patterns->sentinel, line, len)) {
+        goto cold_ac_scan;
+      }
+#endif
+      r->lines_prefiltered++;
+      *out_len = len;
+      return line;
+    }
+  }
+
+#if PLUMBR_TWO_TIER_AC
+  /* Phase 1: Sentinel gate — cheap boolean reject for 70% of lines */
+  if (r->patterns->sentinel) {
+    if (!ac_search_has_match(r->patterns->sentinel, line, len)) {
+      r->lines_sentinel_filtered++;
+      *out_len = len;
+      return line;
+    }
+  }
+#endif
+
+  /* Phase 2: Hot AC scan — L1-resident flat DFA (top 20 patterns).
+   * Lines here passed sentinel, so they likely contain secrets.
+   * Hot DFA handles ~90% of real matches without touching the cold DFA. */
+  if (r->patterns->hot_ac) {
+    ACMatch hot_matches[MAX_MATCHES_PER_LINE];
+    size_t num_hot = ac_search_all(r->patterns->hot_ac, line, len, hot_matches,
+                                   MAX_MATCHES_PER_LINE);
+    if (num_hot > 0) {
+      MatchLocation verified[MAX_MATCHES_PER_LINE];
+      size_t num_verified = verify_ac_matches(
+          r, line, len, hot_matches, num_hot, verified, MAX_MATCHES_PER_LINE);
+      if (num_verified > 0) {
+        return redactor_apply(r, line, len, verified, num_verified, out_len);
+      }
+    }
+  }
+
+cold_ac_scan:;
+  /* Phase 3: Cold AC — full compressed DFA (all patterns), L3 path */
+  {
+    ACMatch ac_matches[MAX_MATCHES_PER_LINE];
+    size_t num_ac = ac_search_all(r->patterns->automaton, line, len, ac_matches,
+                                  MAX_MATCHES_PER_LINE);
+    if (num_ac == 0) {
+      *out_len = len;
+      return line;
+    }
+
+    MatchLocation verified[MAX_MATCHES_PER_LINE];
+    size_t num_verified = verify_ac_matches(r, line, len, ac_matches, num_ac,
+                                            verified, MAX_MATCHES_PER_LINE);
+    if (num_verified > 0) {
+      return redactor_apply(r, line, len, verified, num_verified, out_len);
+    }
+  }
+
+  *out_len = len;
+  return line;
+}
+
+/* Apply redactions: sort, merge overlaps, build output */
+static const char *redactor_apply(Redactor *r, const char *line, size_t len,
+                                  MatchLocation *verified, size_t num_verified,
+                                  size_t *out_len) {
   /* Sort matches by position */
   qsort(verified, num_verified, sizeof(MatchLocation), match_compare);
 
@@ -194,12 +258,10 @@ const char *redactor_process(Redactor *r, const char *line, size_t len,
     MatchLocation *curr = &verified[i];
 
     if (curr->start < prev->end) {
-      /* Overlapping - extend previous if current ends later */
       if (curr->end > prev->end) {
         prev->end = curr->end;
       }
     } else {
-      /* Non-overlapping - keep it */
       verified[merged_count++] = *curr;
     }
   }
@@ -213,18 +275,19 @@ const char *redactor_process(Redactor *r, const char *line, size_t len,
     MatchLocation *m = &verified[i];
     const Pattern *pat = patterns_get(r->patterns, m->pattern_id);
 
-    /* Copy text before match */
     size_t before_len = m->start - in_pos;
     if (before_len > 0) {
       if (out_pos + before_len >= r->output_capacity) {
-        /* Output buffer overflow - truncate */
+        fprintf(stderr,
+                "Warning: redaction output truncated (line too long, "
+                "%zu bytes > %zu capacity). Sensitive data may survive.\n",
+                out_pos + before_len, r->output_capacity);
         break;
       }
       memcpy(r->output_buf + out_pos, line + in_pos, before_len);
       out_pos += before_len;
     }
 
-    /* Insert replacement */
     if (pat && pat->replacement_len > 0) {
       if (out_pos + pat->replacement_len >= r->output_capacity) {
         break;
@@ -236,7 +299,6 @@ const char *redactor_process(Redactor *r, const char *line, size_t len,
     in_pos = m->end;
   }
 
-  /* Copy remaining text */
   size_t remaining = len - in_pos;
   if (remaining > 0 && out_pos + remaining < r->output_capacity) {
     memcpy(r->output_buf + out_pos, line + in_pos, remaining);
@@ -254,6 +316,9 @@ void redactor_reset_stats(Redactor *r) {
   r->lines_scanned = 0;
   r->lines_modified = 0;
   r->patterns_matched = 0;
+#if PLUMBR_TWO_TIER_AC
+  r->lines_sentinel_filtered = 0;
+#endif
 }
 
 size_t redactor_lines_scanned(const Redactor *r) { return r->lines_scanned; }

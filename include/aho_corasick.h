@@ -38,6 +38,9 @@ bool ac_build(ACAutomaton *ac);
 /* Set runtime prefetch tuning from hwdetect */
 void ac_set_prefetch(ACAutomaton *ac, int distance, int hint);
 
+/* Force flat (uncompressed) DFA for this automaton — faster for small DFA */
+void ac_set_force_flat(ACAutomaton *ac);
+
 /* Search text for all patterns, calls callback for each match */
 void ac_search(const ACAutomaton *ac, const char *text, size_t len,
                ACMatchCallback callback, void *user_data);
@@ -50,6 +53,12 @@ bool ac_search_first(const ACAutomaton *ac, const char *text, size_t len,
  */
 size_t ac_search_all(const ACAutomaton *ac, const char *text, size_t len,
                      ACMatch *matches, size_t max_matches);
+
+/* Get DFA memory usage in bytes (for stats/compression validation) */
+size_t ac_dfa_memory(const ACAutomaton *ac);
+
+/* Fast boolean check: does text contain ANY match? (no callback overhead) */
+bool ac_search_has_match(const ACAutomaton *ac, const char *text, size_t len);
 
 /* Get root state DFA transitions (for building trigger sets)
  * Returns pointer to AC_ALPHABET_SIZE int16_t values.

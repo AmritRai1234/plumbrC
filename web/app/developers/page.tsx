@@ -93,7 +93,7 @@ export default function DevelopersPage() {
         {
             icon: <Lock size={18} />,
             title: "Open Source",
-            desc: "MIT licensed. Full source on GitHub. No vendor lock-in.",
+            desc: "Source Available. Free for open-source, non-commercial, and charities. Enterprise licenses available.",
         },
     ];
 
@@ -308,7 +308,7 @@ export default function DevelopersPage() {
                                 </div>
                             </div>
                             <div className="text-2xl font-bold mb-1" style={{ color: '#e8e8e8' }}>5M+ <span className="text-sm font-normal text-[var(--color-text-secondary)]">lines/sec</span></div>
-                            <p className="text-[12px] text-[var(--color-text-tertiary)] mb-4">364 MB/s throughput</p>
+                            <p className="text-[12px] text-[var(--color-text-tertiary)] mb-4">175 MB/s throughput</p>
                             <ul className="space-y-2 mb-5">
                                 <li className="text-[12px] text-[var(--color-text-secondary)] flex items-start gap-2"><ChevronRight size={12} className="mt-0.5 shrink-0" />Pure C with zero overhead</li>
                                 <li className="text-[12px] text-[var(--color-text-secondary)] flex items-start gap-2"><ChevronRight size={12} className="mt-0.5 shrink-0" />AVX2 SIMD &amp; SSE 4.2 optimized</li>
@@ -331,8 +331,8 @@ export default function DevelopersPage() {
                                     <span className="text-[11px] text-[var(--color-text-tertiary)]">Best of both worlds</span>
                                 </div>
                             </div>
-                            <div className="text-2xl font-bold mb-1" style={{ color: '#e8e8e8' }}>83K <span className="text-sm font-normal text-[var(--color-text-secondary)]">lines/sec</span></div>
-                            <p className="text-[12px] text-[var(--color-text-tertiary)] mb-4">C engine via ctypes FFI</p>
+                            <div className="text-2xl font-bold mb-1" style={{ color: '#e8e8e8' }}>2M <span className="text-sm font-normal text-[var(--color-text-secondary)]">lines/sec (bulk)</span></div>
+                            <p className="text-[12px] text-[var(--color-text-tertiary)] mb-4">C engine via ctypes FFI, bulk API</p>
                             <ul className="space-y-2 mb-5">
                                 <li className="text-[12px] text-[var(--color-text-secondary)] flex items-start gap-2"><ChevronRight size={12} className="mt-0.5 shrink-0" />pip install plumbrc</li>
                                 <li className="text-[12px] text-[var(--color-text-secondary)] flex items-start gap-2"><ChevronRight size={12} className="mt-0.5 shrink-0" />Same C engine under the hood</li>

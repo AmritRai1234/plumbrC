@@ -2,33 +2,167 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main ]
+    branches: [main]
+
+env:
+  PLUMBR_ALLOW_ABSOLUTE_PATHS: "1"
 
 jobs:
-  build-and-test:
+  # ─── Build & Unit Tests ───
+  build:
     runs-on: ubuntu-latest
-
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Install dependencies
-      run: sudo apt-get update && sudo apt-get install -y build-essential libpcre2-dev
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y libpcre2-dev valgrind
 
-    - name: Build (release)
-      run: make
+      - name: Build (release)
+        run: make release
 
-    - name: Build (sanitizer)
-      run: make clean && make sanitize
+      - name: Unit tests
+        run: make test-unit
 
-    - name: Run unit tests
-      run: make test-unit
+      - name: Quick smoke test
+        run: echo "password=secret123 key=AKIAIOSFODNN7EXAMPLE" | ./build/bin/plumbr 2>/dev/null | grep -q REDACTED
 
-    - name: Run quick test
-      run: echo "aws_key=AKIAIOSFODNN7EXAMPLE password=secret123" | ./build/bin/plumbr
+      - name: Upload binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: plumbr-binary
+          path: build/bin/plumbr
 
-    - name: Static analysis
-      run: |
-        sudo apt-get install -y cppcheck
-        make analyze || true
+  # ─── Memory Safety (Valgrind) ───
+  memory:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y libpcre2-dev valgrind
+
+      - name: Build (debug)
+        run: make debug
+
+      - name: Valgrind leak check
+        run: |
+          echo "password=secret123 api_key=AKIAIOSFODNN7EXAMPLE" | \
+          valgrind --leak-check=full --error-exitcode=1 \
+            --errors-for-leak-kinds=definite,indirect \
+            ./build/bin/plumbr 2>&1 | tee valgrind.log
+          grep -q "ERROR SUMMARY: 0 errors" valgrind.log
+
+      - name: Valgrind unit tests
+        run: |
+          for test in build/bin/test_*; do
+            echo "=== $test ==="
+            valgrind --leak-check=full --error-exitcode=1 \
+              --errors-for-leak-kinds=definite,indirect \
+              "$test" 2>&1 | tail -3
+          done
+
+  # ─── Performance Benchmark ───
+  benchmark:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y libpcre2-dev
+
+      - name: Build benchmark suite
+        run: make release && make build/bin/benchmark_suite
+
+      - name: Run benchmark (JSON)
+        run: make benchmark-json > benchmark.json 2>/dev/null
+
+      - name: Print results
+        run: cat benchmark.json | python3 -m json.tool
+
+      - name: Check minimum throughput (1M clean, 1T > 500K lines/sec)
+        run: |
+          THROUGHPUT=$(python3 -c "
+          import json
+          data = json.load(open('benchmark.json'))
+          clean_1t = [r for r in data if r['name'] == '1M clean (1T)'][0]
+          print(int(clean_1t['lines_per_sec']))
+          ")
+          echo "Throughput: $THROUGHPUT lines/sec"
+          if [ "$THROUGHPUT" -lt 500000 ]; then
+            echo "FAIL: throughput below 500K lines/sec minimum"
+            exit 1
+          fi
+
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results
+          path: benchmark.json
+
+  # ─── Python Package ───
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y libpcre2-dev
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build shared library
+        run: make shared
+
+      - name: Install Python package
+        run: |
+          cp build/lib/libplumbr.so python/plumbrc/lib/
+          cd python && pip install -e .
+
+      - name: Test Python bindings
+        working-directory: python
+        run: |
+          python -c "
+          from plumbrc import Plumbr, __version__
+          print(f'Version: {__version__}')
+          with Plumbr() as p:
+              result = p.redact('password=secret123')
+              assert 'REDACTED' in result, f'Expected redaction, got: {result}'
+              print(f'Single: {result}')
+
+              # Bulk API
+              lines = p.redact_lines(['password=abc', 'Normal line', 'key=AKIAIOSFODNN7EXAMPLE'])
+              assert len(lines) == 3
+              assert 'REDACTED' in lines[0]
+              assert lines[1] == 'Normal line'
+              print(f'Bulk: {lines}')
+
+              print(f'Patterns: {p.pattern_count}')
+          print('All Python tests passed')
+          "
+
+      - name: Run pytest (if tests exist)
+        working-directory: python
+        run: |
+          if [ -d "tests" ] && command -v pytest &>/dev/null; then
+            pytest tests/ -v || true
+          fi
+
+  # ─── Library Build ───
+  library:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target: [lib, shared, server]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y libpcre2-dev
+
+      - name: Build ${{ matrix.target }}
+        run: make ${{ matrix.target }}

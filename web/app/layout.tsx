@@ -4,7 +4,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "PlumbrC — High-Performance Log Redaction",
   description:
-    "Redact secrets from your logs at 2.6M lines/sec. AWS keys, passwords, emails, tokens — caught and replaced instantly. Open source, pure C, zero-allocation hot path.",
+    "Redact secrets from your logs at 5M+ lines/sec. AWS keys, passwords, emails, tokens — caught and replaced instantly. Open source, pure C, zero-allocation hot path.",
   keywords: [
     "log redaction",
     "secret scanning",
@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   ],
   openGraph: {
     title: "PlumbrC — High-Performance Log Redaction",
-    description: "Redact secrets from your logs at 2.6M lines/sec.",
+    description: "Redact secrets from your logs at 5M+ lines/sec.",
     type: "website",
   },
 };

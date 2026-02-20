@@ -1,0 +1,36 @@
+# SOC 2 Compliance Patterns
+# Service Organization Control Type 2
+# Covers audit trails, access control, encryption keys
+# Format: name|literal|regex|replacement
+
+# Audit Log Identifiers
+soc2_audit_id|audit_id|audit_id[\s:=]+[A-Za-z0-9-]+|[REDACTED:audit_id]
+soc2_audit_log_id|audit_log_id|audit_log_id[\s:=]+[A-Za-z0-9-]+|[REDACTED:audit_id]
+soc2_event_id|event_id|event_id[\s:=]+[A-Za-z0-9-]+|[REDACTED:event_id]
+soc2_session_id|session_id|session_id[\s:=]+[A-Za-z0-9-]+|[REDACTED:session_id]
+soc2_session_token|session_token|session_token[\s:=]+[A-Za-z0-9-]+|[REDACTED:session_token]
+soc2_request_id|request_id|request_id[\s:=]+[A-Za-z0-9-]+|[REDACTED:request_id]
+soc2_trace_id|trace_id|trace_id[\s:=]+[A-Za-z0-9-]+|[REDACTED:trace_id]
+soc2_correlation_id|correlation_id|correlation_id[\s:=]+[A-Za-z0-9-]+|[REDACTED:correlation_id]
+
+# Access Control Fields
+soc2_role|role=|role[\s:=]+[A-Za-z_]+|[REDACTED:role]
+soc2_user_role|user_role|user_role[\s:=]+[A-Za-z_]+|[REDACTED:role]
+soc2_permission|permission|permissions?[\s:=]+[A-Za-z_:,\s]+|[REDACTED:permission]
+soc2_acl|acl|acl[\s:=]+[^\s]+|[REDACTED:acl]
+soc2_access_control|access_control|access_control[\s:=]+[^\s]+|[REDACTED:acl]
+soc2_privilege|privilege|privileges?[\s:=]+[A-Za-z_,\s]+|[REDACTED:privilege]
+
+# Encryption Key Material
+soc2_enc_key|encryption_key|encryption_key[\s:=]+[A-Za-z0-9+/=]+|[REDACTED:enc_key]
+soc2_signing_key|signing_key|signing_key[\s:=]+[A-Za-z0-9+/=]+|[REDACTED:signing_key]
+soc2_master_key|master_key|master_key[\s:=]+[A-Za-z0-9+/=]+|[REDACTED:master_key]
+soc2_kms_key|kms_key|kms_key[\s:=]+[^\s]+|[REDACTED:kms]
+soc2_kms_arn|kms_arn|kms_arn[\s:=]+[^\s]+|[REDACTED:kms]
+
+# MFA / 2FA Codes
+soc2_totp_code|totp_code|totp_code[\s:=]+[A-Z2-7]+|[REDACTED:totp]
+soc2_totp_secret|totp_secret|totp_secret[\s:=]+[A-Z2-7]+|[REDACTED:totp]
+soc2_mfa_code|mfa_code|mfa_code[\s:=]+[A-Za-z0-9]+|[REDACTED:mfa]
+soc2_mfa_secret|mfa_secret|mfa_secret[\s:=]+[A-Za-z0-9]+|[REDACTED:mfa]
+soc2_recovery_code|recovery_code|recovery_code[\s:=]+[A-Za-z0-9-]+|[REDACTED:recovery_code]

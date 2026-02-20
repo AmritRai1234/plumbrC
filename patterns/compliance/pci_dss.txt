@@ -1,0 +1,38 @@
+# PCI-DSS Compliance Patterns
+# Payment Card Industry Data Security Standard
+# Covers cardholder data, sensitive auth data, track data
+# Format: name|literal|regex|replacement
+
+# Magnetic Stripe Track 1 (starts with %B, contains name and PAN)
+pci_track1|%B|%B[0-9]{13,19}\^[^\^]+\^[0-9]{4}[0-9]*|[REDACTED:track1]
+
+# Magnetic Stripe Track 2 (starts with ;, contains PAN and expiry)
+pci_track2|;|;[0-9]{13,19}=[0-9]{4}[0-9]*|[REDACTED:track2]
+
+# PIN Block (8-16 hex digits in PIN context)
+pci_pin_block|pin_block|pin_block[\s:=]+[0-9A-Fa-f]{8,16}|[REDACTED:pin_block]
+pci_pin|PIN|PIN[\s:=]+[0-9]{4,8}\b|[REDACTED:pin]
+pci_pin_lower|pin|pin[\s:=]+[0-9]{4,8}\b|[REDACTED:pin]
+
+# Service Code (3-digit code on mag stripe)
+pci_service_code|service_code|service_code[\s:=]+[0-9]{3}\b|[REDACTED:service_code]
+
+# PAN in context (credit card with field label)
+pci_pan|pan|pan[\s:=]+[0-9]{13,19}|[REDACTED:pan]
+pci_pan_upper|PAN|PAN[\s:=]+[0-9]{13,19}|[REDACTED:pan]
+pci_card_number|card_number|card_number[\s:=]+[0-9]{13,19}|[REDACTED:pan]
+pci_cardnumber|cardnumber|cardnumber[\s:=]+[0-9]{13,19}|[REDACTED:pan]
+
+# Card Verification Value
+pci_cvv2|cvv2|cvv2[\s:=]+[0-9]{3,4}|[REDACTED:cvv]
+pci_cvc|cvc|cvc[\s:=]+[0-9]{3,4}|[REDACTED:cvv]
+pci_cid|CID|CID[\s:=]+[0-9]{3,4}|[REDACTED:cvv]
+
+# Cardholder Name in context
+pci_cardholder|cardholder|cardholder[\s_]?name[\s:=]+[A-Za-z\s]+|[REDACTED:cardholder]
+
+# Authorization Code
+pci_auth_code|auth_code|auth_code[\s:=]+[A-Z0-9]{6}\b|[REDACTED:auth_code]
+
+# Merchant ID
+pci_merchant_id|merchant_id|merchant_id[\s:=]+[A-Z0-9]+|[REDACTED:merchant_id]

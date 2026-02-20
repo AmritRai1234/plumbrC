@@ -13,6 +13,7 @@
 #include "redactor.h"
 
 #include <pthread.h>
+#include <stdatomic.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -73,6 +74,44 @@ PlumbrContext *plumbr_create(const PlumbrConfig *config) {
     }
   } else if (config->use_defaults) {
     patterns_add_defaults(ctx->patterns);
+  }
+
+  /* Load compliance patterns if requested */
+  if (config->compliance) {
+    const char *comp = config->compliance;
+    bool load_hipaa = false, load_pci = false;
+    bool load_gdpr = false, load_soc2 = false;
+
+    if (strcmp(comp, "all") == 0) {
+      load_hipaa = load_pci = load_gdpr = load_soc2 = true;
+    } else {
+      /* Parse comma-separated list: hipaa,pci,gdpr,soc2 */
+      char buf[256];
+      snprintf(buf, sizeof(buf), "%s", comp);
+      char *tok = strtok(buf, ",");
+      while (tok) {
+        if (strcmp(tok, "hipaa") == 0)
+          load_hipaa = true;
+        else if (strcmp(tok, "pci") == 0)
+          load_pci = true;
+        else if (strcmp(tok, "gdpr") == 0)
+          load_gdpr = true;
+        else if (strcmp(tok, "soc2") == 0)
+          load_soc2 = true;
+        else
+          fprintf(stderr, "Warning: unknown compliance profile '%s'\n", tok);
+        tok = strtok(NULL, ",");
+      }
+    }
+
+    if (load_hipaa)
+      patterns_load_file(ctx->patterns, "patterns/compliance/hipaa.txt");
+    if (load_pci)
+      patterns_load_file(ctx->patterns, "patterns/compliance/pci_dss.txt");
+    if (load_gdpr)
+      patterns_load_file(ctx->patterns, "patterns/compliance/gdpr.txt");
+    if (load_soc2)
+      patterns_load_file(ctx->patterns, "patterns/compliance/soc2.txt");
   }
 
   /* Build automaton */
@@ -244,18 +283,17 @@ int plumbr_process_fd(PlumbrContext *ctx, int in_fd, int out_fd) {
   if (num_threads == 0) {
     /* SECURITY: Thread-safe hardware detection with double-checked locking */
     static HardwareInfo hw_info = {0};
-    static volatile int hw_initialized = 0;
+    static _Atomic int hw_initialized = 0;
     static pthread_mutex_t hw_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-    if (!hw_initialized) {
+    if (!atomic_load_explicit(&hw_initialized, memory_order_acquire)) {
       pthread_mutex_lock(&hw_mutex);
-      if (!hw_initialized) {
+      if (!atomic_load_explicit(&hw_initialized, memory_order_relaxed)) {
         hwdetect_init(&hw_info);
         hwdetect_autotune_threads(&hw_info);
         ac_set_prefetch(ctx->patterns->automaton, hw_info.prefetch_distance,
                         hw_info.prefetch_hint);
-        __sync_synchronize(); /* Memory barrier */
-        hw_initialized = 1;
+        atomic_store_explicit(&hw_initialized, 1, memory_order_release);
       }
       pthread_mutex_unlock(&hw_mutex);
     }
@@ -342,14 +380,20 @@ void plumbr_destroy(PlumbrContext *ctx) {
   if (!ctx)
     return;
 
+  redactor_destroy(ctx->redactor);
   patterns_destroy(ctx->patterns);
   arena_destroy(&ctx->arena);
   free(ctx);
 }
 
+/* SECURITY: Thread-safe version string using pthread_once */
+static char g_plumbr_version[32];
+static pthread_once_t g_version_once = PTHREAD_ONCE_INIT;
+static void init_version(void) {
+  snprintf(g_plumbr_version, sizeof(g_plumbr_version), "%d.%d.%d",
+           PLUMBR_VERSION_MAJOR, PLUMBR_VERSION_MINOR, PLUMBR_VERSION_PATCH);
+}
 const char *plumbr_version(void) {
-  static char version[32];
-  snprintf(version, sizeof(version), "%d.%d.%d", PLUMBR_VERSION_MAJOR,
-           PLUMBR_VERSION_MINOR, PLUMBR_VERSION_PATCH);
-  return version;
+  pthread_once(&g_version_once, init_version);
+  return g_plumbr_version;
 }

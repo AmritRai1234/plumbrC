@@ -1,3 +1,8 @@
+/* SECURITY: _GNU_SOURCE needed for memmem() */
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
+
 /*
  * PlumbrC - Native HTTP Server
  * High-performance REST API for log redaction
@@ -83,7 +88,12 @@ static void queue_push(WorkQueue *q, int fd) {
     q->count++;
     pthread_cond_signal(&q->not_empty);
   } else {
-    /* Queue full — drop connection */
+    /* SECURITY: Send 503 before closing so client gets a proper error */
+    const char *resp = "HTTP/1.1 503 Service Unavailable\r\n"
+                       "Content-Length: 36\r\n"
+                       "Connection: close\r\n\r\n"
+                       "{\"error\":\"Server queue full\"}";
+    (void)!write(fd, resp, strlen(resp));
     close(fd);
   }
   pthread_mutex_unlock(&q->lock);
@@ -143,7 +153,13 @@ static int parse_content_length(const char *headers, size_t header_len) {
       const char *val = p + 15;
       while (val < end && *val == ' ')
         val++;
-      return atoi(val);
+      /* SECURITY: Use strtol instead of atoi to detect overflow/negative */
+      char *endptr;
+      long cl = strtol(val, &endptr, 10);
+      if (endptr == val || cl < 0 || cl > MAX_BODY_SIZE) {
+        return -1; /* Invalid, negative, or too large */
+      }
+      return (int)cl;
     }
     /* Skip to next line */
     while (p < end && *p != '\n')
@@ -156,8 +172,8 @@ static int parse_content_length(const char *headers, size_t header_len) {
 
 /* Check if Connection: keep-alive (HTTP/1.1 default) */
 static bool is_keep_alive(const char *headers, size_t header_len) {
-  /* Default keep-alive for HTTP/1.1 */
-  if (header_len > 8 && strstr(headers, "HTTP/1.1"))
+  /* SECURITY: Use bounded search (memmem) instead of strstr on sized buffer */
+  if (header_len > 8 && memmem(headers, header_len, "HTTP/1.1", 8) != NULL)
     return true;
   /* Explicit header check */
   const char *p = headers;
@@ -172,9 +188,9 @@ static bool is_keep_alive(const char *headers, size_t header_len) {
       const char *val = p + 11;
       while (val < end && *val == ' ')
         val++;
-      if (strncmp(val, "keep-alive", 10) == 0 ||
-          strncmp(val, "Keep-Alive", 10) == 0 ||
-          strncmp(val, "Keep-alive", 10) == 0)
+      if ((size_t)(end - val) >= 10 && (strncmp(val, "keep-alive", 10) == 0 ||
+                                        strncmp(val, "Keep-Alive", 10) == 0 ||
+                                        strncmp(val, "Keep-alive", 10) == 0))
         return true;
       return false;
     }
@@ -190,7 +206,7 @@ static bool is_keep_alive(const char *headers, size_t header_len) {
 static bool parse_request_line(const char *buf, char *method, size_t mlen,
                                char *path, size_t plen) {
   /* "POST /api/redact HTTP/1.1\r\n" */
-  const char *sp1 = memchr(buf, ' ', 16);
+  const char *sp1 = memchr(buf, ' ', 32); /* SECURITY: scan wider for methods */
   if (!sp1)
     return false;
 
@@ -250,6 +266,9 @@ static bool extract_json_text(const char *json, size_t json_len,
   const char *val_start = key;
   while (key < end) {
     if (*key == '\\') {
+      /* SECURITY: bounds check before skipping escape pair */
+      if (key + 1 >= end)
+        break;
       key += 2; /* skip escape sequence */
       continue;
     }
@@ -310,6 +329,10 @@ static size_t json_unescape(char *buf, size_t len) {
 /* Escape string for JSON output, returns malloc'd string */
 static char *json_escape(const char *input, size_t input_len, size_t *out_len) {
   /* Worst case: every char needs escaping = 6x */
+  /* SECURITY: Check for multiplication overflow */
+  if (input_len > SIZE_MAX / 6) {
+    return NULL;
+  }
   size_t max_len = input_len * 6 + 1;
   char *out = malloc(max_len);
   if (!out)
@@ -363,11 +386,25 @@ static char *json_escape(const char *input, size_t input_len, size_t *out_len) {
 
 /* ─── HTTP response builders ──────────────────────────────── */
 
-static const char *CORS_HEADERS =
-    "Access-Control-Allow-Origin: *\r\n"
-    "Access-Control-Allow-Methods: POST, GET, OPTIONS\r\n"
-    "Access-Control-Allow-Headers: Content-Type, Authorization\r\n"
-    "Access-Control-Max-Age: 86400\r\n";
+/*
+ * SECURITY: CORS origin should be restricted in production.
+ * Set PLUMBR_CORS_ORIGIN env var to override the default wildcard.
+ * Example: PLUMBR_CORS_ORIGIN=https://yourdomain.com
+ */
+static const char *get_cors_origin(void) {
+  const char *origin = getenv("PLUMBR_CORS_ORIGIN");
+  return (origin && origin[0]) ? origin : "*";
+}
+
+static char g_cors_headers[512];
+static void init_cors_headers(void) {
+  snprintf(g_cors_headers, sizeof(g_cors_headers),
+           "Access-Control-Allow-Origin: %s\r\n"
+           "Access-Control-Allow-Methods: POST, GET, OPTIONS\r\n"
+           "Access-Control-Allow-Headers: Content-Type, Authorization\r\n"
+           "Access-Control-Max-Age: 86400\r\n",
+           get_cors_origin());
+}
 
 /* Send a complete HTTP response */
 static void send_response(int fd, int status, const char *status_text,
@@ -382,7 +419,7 @@ static void send_response(int fd, int status, const char *status_text,
                       "%s"
                       "\r\n",
                       status, status_text, content_type, body_len,
-                      keep_alive ? "keep-alive" : "close", CORS_HEADERS);
+                      keep_alive ? "keep-alive" : "close", g_cors_headers);
 
   /* Send header + body in one writev if possible */
   struct iovec iov[2];
@@ -429,7 +466,7 @@ static void send_options_response(int fd) {
                       "Content-Length: 0\r\n"
                       "%s"
                       "\r\n",
-                      CORS_HEADERS);
+                      g_cors_headers);
   (void)!write(fd, header, (size_t)hlen);
 }
 
@@ -904,7 +941,10 @@ static ssize_t read_full_request(int fd, char *buf, size_t buf_size) {
 
   /* Set read timeout */
   struct timeval tv = {.tv_sec = 5, .tv_usec = 0};
-  setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+  if (setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) < 0) {
+    fprintf(stderr, "Warning: Failed to set SO_RCVTIMEO: %s\n",
+            strerror(errno));
+  }
 
   while (total < buf_size) {
     ssize_t n = read(fd, buf + total, buf_size - total);
@@ -921,6 +961,11 @@ static ssize_t read_full_request(int fd, char *buf, size_t buf_size) {
     total += (size_t)n;
 
     if (!header_done) {
+      /* SECURITY: Enforce MAX_HEADER_SIZE to prevent header flooding */
+      if (total > MAX_HEADER_SIZE && !find_header_end(buf, total)) {
+        return -1; /* Headers too large, reject */
+      }
+
       const char *hend = find_header_end(buf, total);
       if (hend) {
         header_done = 1;
@@ -954,7 +999,9 @@ static void handle_connection(int fd, libplumbr_t *plumbr) {
 
   /* Enable TCP_NODELAY for low latency */
   int flag = 1;
-  setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(flag));
+  if (setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(flag)) < 0) {
+    /* Non-fatal — proceed anyway */
+  }
 
   bool keep_alive = true;
 
@@ -1101,15 +1148,30 @@ int main(int argc, char *argv[]) {
   while ((opt = getopt_long(argc, argv, "p:H:t:d:f:h", long_options, NULL)) !=
          -1) {
     switch (opt) {
-    case 'p':
-      port = atoi(optarg);
+    case 'p': {
+      /* SECURITY: Use strtol with validation instead of atoi */
+      char *ep;
+      long v = strtol(optarg, &ep, 10);
+      if (*ep != '\0' || v < 1 || v > 65535) {
+        fprintf(stderr, "Invalid port: %s\n", optarg);
+        return 1;
+      }
+      port = (int)v;
       break;
+    }
     case 'H':
       host = optarg;
       break;
-    case 't':
-      num_threads = atoi(optarg);
+    case 't': {
+      char *ep;
+      long v = strtol(optarg, &ep, 10);
+      if (*ep != '\0' || v < 0 || v > 256) {
+        fprintf(stderr, "Invalid thread count: %s\n", optarg);
+        return 1;
+      }
+      num_threads = (int)v;
       break;
+    }
     case 'd':
       pattern_dir = optarg;
       break;
@@ -1138,6 +1200,9 @@ int main(int argc, char *argv[]) {
   signal(SIGINT, signal_handler);
   signal(SIGTERM, signal_handler);
   signal(SIGPIPE, SIG_IGN);
+
+  /* Initialize CORS headers from env */
+  init_cors_headers();
 
   /* Record start time */
   clock_gettime(CLOCK_MONOTONIC, &g_start_time);
@@ -1185,8 +1250,14 @@ int main(int argc, char *argv[]) {
 
   /* Socket options */
   int reuse = 1;
-  setsockopt(listen_fd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
-  setsockopt(listen_fd, SOL_SOCKET, SO_REUSEPORT, &reuse, sizeof(reuse));
+  if (setsockopt(listen_fd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) <
+      0) {
+    perror("setsockopt SO_REUSEADDR");
+  }
+  if (setsockopt(listen_fd, SOL_SOCKET, SO_REUSEPORT, &reuse, sizeof(reuse)) <
+      0) {
+    perror("setsockopt SO_REUSEPORT");
+  }
 
   /* Set non-blocking for epoll accept loop */
   int flags = fcntl(listen_fd, F_GETFL, 0);

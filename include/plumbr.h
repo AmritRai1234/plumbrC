@@ -30,6 +30,7 @@ typedef struct {
 /* Configuration options */
 typedef struct {
   const char *pattern_file; /* Path to pattern file (NULL for defaults) */
+  const char *compliance;   /* Compliance profile: hipaa,pci,gdpr,soc2,all */
   bool use_defaults;        /* Use built-in default patterns */
   bool quiet;               /* Suppress stats output */
   bool stats_to_stderr;     /* Print stats to stderr */

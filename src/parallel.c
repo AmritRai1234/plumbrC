@@ -150,7 +150,8 @@ ParallelCtx *parallel_create(int num_threads, PatternSet *patterns,
     return NULL;
   }
 
-  for (int i = 0; i < num_threads; i++) {
+  int i;
+  for (i = 0; i < num_threads; i++) {
     Worker *w = &ctx->workers[i];
     w->id = i;
     w->start_barrier = &ctx->start_barrier;
@@ -184,11 +185,16 @@ cleanup:
   pthread_barrier_destroy(&ctx->start_barrier);
   pthread_barrier_destroy(&ctx->done_barrier);
 
-  for (int j = 0; j < num_threads; j++) {
-    if (ctx->workers[j].thread) {
-      pthread_cancel(ctx->workers[j].thread);
-    }
+  /* SECURITY: Only cancel/join threads that were successfully created.
+   * pthread_cancel(0) is undefined behavior on some implementations. */
+  for (int j = 0; j < i; j++) {
+    pthread_cancel(ctx->workers[j].thread);
+    pthread_join(ctx->workers[j].thread, NULL);
     arena_destroy(&ctx->workers[j].arena);
+  }
+  /* Destroy arenas for workers that were initialized but not started */
+  if (i < num_threads) {
+    arena_destroy(&ctx->workers[i].arena);
   }
   free(ctx->workers);
   free(ctx);
@@ -260,6 +266,7 @@ void parallel_destroy(ParallelCtx *ctx) {
   /* Wait for threads to exit */
   for (int i = 0; i < ctx->num_threads; i++) {
     pthread_join(ctx->workers[i].thread, NULL);
+    redactor_destroy(ctx->workers[i].redactor);
     arena_destroy(&ctx->workers[i].arena);
   }
 

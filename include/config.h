@@ -27,7 +27,12 @@
 
 /* Aho-Corasick */
 #define AC_ALPHABET_SIZE 256
-#define AC_MAX_STATES (4 * 1024) /* 4K states - each ~1KB */
+#define AC_MAX_STATES (8 * 1024) /* 8K states — supports base + compliance */
+#define PLUMBR_DFA_COMPRESSED 1  /* Use bitmap-compressed DFA (better cache) */
+#define PLUMBR_TWO_TIER_AC                                                     \
+  1                           /* L1-resident sentinel AC for fast line reject  \
+                               */
+#define PLUMBR_HOT_AC_SIZE 20 /* Patterns in L1-resident hot DFA (~24KB) */
 
 /* I/O */
 #define PLUMBR_IOV_BATCH 64 /* writev batch size */

@@ -1,4 +1,6 @@
 CompileFlags:
   Add:
-    - "-I/home/amrit/plumbrC/include"
+    - "-Iinclude"
+    - "-Isrc/amd"
+    - "-D_GNU_SOURCE"
     - "-std=c11"

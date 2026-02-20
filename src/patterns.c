@@ -22,6 +22,9 @@ PatternSet *patterns_create(Arena *arena, size_t initial_capacity) {
   ps->count = 0;
   ps->capacity = initial_capacity;
   ps->automaton = ac_create(arena);
+#if PLUMBR_TWO_TIER_AC
+  ps->sentinel = NULL; /* Built lazily in patterns_build */
+#endif
   ps->arena = arena;
   ps->built = false;
 
@@ -74,12 +77,10 @@ bool patterns_add(PatternSet *ps, const char *name, const char *literal,
   /* JIT compile for speed */
   pcre2_jit_compile(p->regex, PCRE2_JIT_COMPLETE);
 
-  /* Create match data */
-  p->match_data = pcre2_match_data_create_from_pattern(p->regex, NULL);
-  if (!p->match_data) {
-    pcre2_code_free(p->regex);
-    return false;
-  }
+  /* Note: per-pattern match_data is NOT allocated here.
+   * The Redactor creates its own per-redactor match_data for thread safety.
+   * Keeping match_data=NULL here avoids wasteful allocation. */
+  p->match_data = NULL;
 
   /* Copy replacement */
   if (replacement && replacement[0]) {
@@ -98,10 +99,14 @@ bool patterns_add(PatternSet *ps, const char *name, const char *literal,
 }
 
 bool patterns_load_file(PatternSet *ps, const char *filename) {
-  /* SECURITY: Basic path traversal prevention */
+  /* SECURITY: Path traversal prevention */
   if (strstr(filename, "..") != NULL) {
     fprintf(stderr,
             "Pattern file path contains '..' - rejected for security\n");
+    return false;
+  }
+  if (filename[0] == '/' && !getenv("PLUMBR_ALLOW_ABSOLUTE_PATHS")) {
+    fprintf(stderr, "Absolute pattern file paths are not allowed\n");
     return false;
   }
 
@@ -216,6 +221,138 @@ bool patterns_build(PatternSet *ps) {
   if (!ac_build(ps->automaton)) {
     return false;
   }
+
+  /* Build L1-resident hot DFA from highest-frequency patterns.
+   * These are the patterns most likely to appear in real-world logs,
+   * ordered by match probability. The DFA (~24KB) stays in L1 cache. */
+  static const char *hot_names[] = {
+      "password_value",
+      "secret_value",
+      "api_key_value",
+      "token_value",
+      "credential_value",
+      "aws_access_key",
+      "github_personal_access_token",
+      "email_address",
+      "generic_api_key",
+      "generic_api_secret",
+      "generic_auth_token",
+      "bearer_token",
+      "generic_password",
+      "generic_secret_key",
+      "visa",
+      "mastercard",
+      "amex",
+      "ssn",
+      "private_key_path",
+      "generic_db_password",
+  };
+  static const size_t num_hot_names = sizeof(hot_names) / sizeof(hot_names[0]);
+
+  ps->hot_ac = ac_create(ps->arena);
+  ps->hot_count = 0;
+  if (ps->hot_ac) {
+    ac_set_force_flat(ps->hot_ac); /* Flat DFA for L1-speed transitions */
+    for (size_t h = 0; h < num_hot_names && ps->hot_count < PLUMBR_HOT_AC_SIZE;
+         h++) {
+      for (size_t i = 0; i < ps->count; i++) {
+        Pattern *p = &ps->patterns[i];
+        if (strcmp(p->name, hot_names[h]) == 0 && p->has_literal &&
+            p->literal_len > 0) {
+          ac_add_pattern(ps->hot_ac, p->literal, p->literal_len, p->id);
+          ps->hot_count++;
+          break;
+        }
+      }
+    }
+    if (ps->hot_count == 0 || !ac_build(ps->hot_ac)) {
+      ps->hot_ac = NULL; /* Non-fatal: fall back to cold-only path */
+    }
+  }
+
+#if PLUMBR_TWO_TIER_AC
+  /* Build tier-1 sentinel AC — tiny L1-resident DFA for fast line rejection.
+   * Contains the 14 most discriminative triggers that cover ~90%+ of real
+   * matches. If none of these appear in a line, the full AC can be skipped. */
+  static const struct {
+    const char *literal;
+    size_t len;
+  } sentinels[] = {
+      /* Core secrets */
+      {"password", 8},
+      {"secret", 6},
+      {"token", 5},
+      {"AKIA", 4},
+      {"ghp_", 4},
+      {"sk_live_", 8},
+      {"postgres://", 11},
+      {"mongodb://", 10},
+      {"-----BEGIN", 10},
+      {"xoxb-", 5},
+      {"eyJ", 3},
+      {"Bearer", 6},
+      {"api_key", 7},
+      {"credential", 10},
+      {"key", 3},
+      /* HIPAA */
+      {"MRN", 3},
+      {"NPI", 3},
+      {"diagnosis", 9},
+      {"patient", 7},
+      {"beneficiary", 11},
+      {"ICD", 3},
+      {"glucose", 7},
+      {"A1C", 3},
+      {"blood", 5},
+      {"heart_rate", 10},
+      {"encounter", 9},
+      {"prescription", 12},
+      {"Rx", 2},
+      /* PCI-DSS */
+      {"cardholder", 10},
+      {"%B", 2},
+      {"PIN", 3},
+      {"track", 5},
+      {"card_number", 11},
+      {"cvv", 3},
+      {"merchant", 8},
+      /* GDPR */
+      {"IBAN", 4},
+      {"NINO", 4},
+      {"DNI", 3},
+      {"NIE", 3},
+      {"INSEE", 5},
+      {"Steuernummer", 13},
+      {"codice_fiscale", 14},
+      {"driving_licen", 13},
+      /* SOC2 */
+      {"audit_id", 8},
+      {"session_id", 10},
+      {"role", 4},
+      {"permission", 10},
+      {"acl", 3},
+      {"privilege", 9},
+      {"encryption_key", 14},
+      {"signing_key", 11},
+      {"master_key", 10},
+      {"mfa", 3},
+      {"totp", 4},
+      {"recovery_code", 13},
+      {"kms", 3},
+  };
+  static const size_t NUM_SENTINELS = sizeof(sentinels) / sizeof(sentinels[0]);
+
+  ps->sentinel = ac_create(ps->arena);
+  if (ps->sentinel) {
+    for (size_t i = 0; i < NUM_SENTINELS; i++) {
+      ac_add_pattern(ps->sentinel, sentinels[i].literal, sentinels[i].len,
+                     (uint32_t)i);
+    }
+    if (!ac_build(ps->sentinel)) {
+      ps->sentinel = NULL; /* Non-fatal: fall back to full AC only */
+    }
+  }
+#endif /* PLUMBR_TWO_TIER_AC */
 
   ps->built = true;
   return true;

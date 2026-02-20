@@ -19,6 +19,8 @@ static void print_usage(const char *prog) {
   fprintf(stderr, "Usage: %s [OPTIONS] < input > output\n\n", prog);
   fprintf(stderr, "Options:\n");
   fprintf(stderr, "  -p, --patterns FILE   Load patterns from FILE\n");
+  fprintf(stderr, "  -c, --compliance SET  Load compliance patterns: "
+                  "hipaa,pci,gdpr,soc2,all\n");
   fprintf(
       stderr,
       "  -d, --defaults        Use built-in default patterns (default: on)\n");
@@ -35,11 +37,22 @@ static void print_usage(const char *prog) {
   fprintf(stderr, "Pattern file format (one per line):\n");
   fprintf(stderr, "  name|literal|regex|replacement\n");
   fprintf(stderr, "\n");
+  fprintf(stderr, "Compliance profiles:\n");
+  fprintf(stderr, "  hipaa     HIPAA PHI identifiers (MRN, NPI, ICD-10)\n");
+  fprintf(stderr, "  pci       PCI-DSS card data (track, PIN, PAN)\n");
+  fprintf(stderr, "  gdpr      GDPR EU identifiers (IBAN, national IDs)\n");
+  fprintf(stderr, "  soc2      SOC2 audit/access fields\n");
+  fprintf(stderr, "  all       All compliance profiles\n");
+  fprintf(stderr, "\n");
   fprintf(stderr, "Examples:\n");
   fprintf(stderr, "  # Redact logs using default patterns\n");
   fprintf(stderr, "  %s < app.log > redacted.log\n\n", prog);
   fprintf(stderr, "  # Use custom patterns\n");
   fprintf(stderr, "  %s -p custom.txt < app.log > redacted.log\n\n", prog);
+  fprintf(stderr, "  # HIPAA compliant redaction\n");
+  fprintf(stderr, "  %s -c hipaa < patient.log > redacted.log\n\n", prog);
+  fprintf(stderr, "  # All compliance profiles\n");
+  fprintf(stderr, "  %s -c all < app.log > redacted.log\n\n", prog);
   fprintf(stderr, "  # Pipeline usage\n");
   fprintf(stderr, "  tail -f /var/log/app.log | %s | tee redacted.log\n", prog);
 }
@@ -52,6 +65,7 @@ int main(int argc, char *argv[]) {
 
   static struct option long_options[] = {
       {"patterns", required_argument, 0, 'p'},
+      {"compliance", required_argument, 0, 'c'},
       {"defaults", no_argument, 0, 'd'},
       {"no-defaults", no_argument, 0, 'D'},
       {"threads", required_argument, 0, 'j'},
@@ -63,11 +77,14 @@ int main(int argc, char *argv[]) {
       {0, 0, 0, 0}};
 
   int opt;
-  while ((opt = getopt_long(argc, argv, "p:j:dDqshvH", long_options, NULL)) !=
+  while ((opt = getopt_long(argc, argv, "p:c:j:dDqshvH", long_options, NULL)) !=
          -1) {
     switch (opt) {
     case 'p':
       config.pattern_file = optarg;
+      break;
+    case 'c':
+      config.compliance = optarg;
       break;
     case 'd':
       config.use_defaults = true;
@@ -75,9 +92,17 @@ int main(int argc, char *argv[]) {
     case 'D':
       config.use_defaults = false;
       break;
-    case 'j':
-      config.num_threads = atoi(optarg);
+    case 'j': {
+      /* SECURITY: Use strtol with validation instead of atoi */
+      char *endptr;
+      long val = strtol(optarg, &endptr, 10);
+      if (*endptr != '\0' || val < 0 || val > 256) {
+        fprintf(stderr, "Invalid thread count: %s\n", optarg);
+        return 1;
+      }
+      config.num_threads = (int)val;
       break;
+    }
     case 'q':
       config.quiet = true;
       break;

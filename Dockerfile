@@ -85,7 +85,9 @@ ENV NODE_ENV=production
 ENV PORT=3001
 ENV HOSTNAME=0.0.0.0
 ENV DB_PATH=/app/data/plumbr.db
-ENV JWT_SECRET=change-this-in-production
+# SECURITY: JWT_SECRET must be provided at runtime via -e JWT_SECRET=...
+# DO NOT hardcode a default here.
+# ENV JWT_SECRET=change-this-in-production
 ENV PLUMBR_THREADS=4
 
 # nginx on :3000 (public), C server on :8081, gRPC on :50051, Next.js on :3001 (internal)

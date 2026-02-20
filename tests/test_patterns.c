@@ -62,7 +62,7 @@ TEST(arena_basic) {
 
 TEST(ac_single_pattern) {
   Arena arena;
-  ASSERT_TRUE(arena_init(&arena, 8 * 1024 * 1024));
+  ASSERT_TRUE(arena_init(&arena, 16 * 1024 * 1024));
 
   ACAutomaton *ac = ac_create(&arena);
   ASSERT_TRUE(ac != NULL);
@@ -84,7 +84,7 @@ TEST(ac_single_pattern) {
 
 TEST(ac_multiple_patterns) {
   Arena arena;
-  ASSERT_TRUE(arena_init(&arena, 8 * 1024 * 1024));
+  ASSERT_TRUE(arena_init(&arena, 16 * 1024 * 1024));
 
   ACAutomaton *ac = ac_create(&arena);
   ASSERT_TRUE(ac_add_pattern(ac, "he", 2, 0));

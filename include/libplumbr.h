@@ -28,6 +28,7 @@ typedef struct libplumbr libplumbr_t;
 typedef struct {
   const char *pattern_file; /* Path to pattern file (NULL = defaults) */
   const char *pattern_dir;  /* Path to pattern directory (NULL = none) */
+  const char *compliance;   /* Compliance profiles: hipaa,pci,gdpr,soc2,all */
   int num_threads;          /* Worker threads (0 = auto) */
   int quiet;                /* Suppress stats output */
 } libplumbr_config_t;
@@ -111,6 +112,30 @@ size_t libplumbr_pattern_count(const libplumbr_t *p);
  * Get version string
  */
 const char *libplumbr_version(void);
+
+/*
+ * Redact a newline-separated buffer (zero-copy bulk API)
+ *
+ * Processes all lines in a single call — ideal for FFI bindings (Python, Go)
+ * that want to avoid per-line call overhead.
+ *
+ * p: PlumbrC handle
+ * input: Newline-separated input buffer
+ * input_len: Length of input buffer
+ * output_len: Receives output length
+ *
+ * Returns: Newly allocated newline-separated result (caller must free)
+ *          Returns NULL on error
+ */
+char *libplumbr_redact_buffer(libplumbr_t *p, const char *input,
+                              size_t input_len, size_t *output_len);
+
+/*
+ * Free a string returned by libplumbr_redact or libplumbr_redact_buffer.
+ * Use this instead of free() when calling from FFI (Python, Go, etc.)
+ * to ensure the correct allocator is used.
+ */
+void libplumbr_free_string(char *str);
 
 /*
  * Free PlumbrC instance

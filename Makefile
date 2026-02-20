@@ -69,6 +69,24 @@ release: CFLAGS += $(WARNINGS) $(OPT_FLAGS) -DNDEBUG
 release: LDFLAGS += -flto -Wl,--gc-sections
 release: $(BIN_DIR)/$(TARGET)
 
+# PGO build (profile-guided optimization)
+pgo: clean
+	@echo "=== PGO Phase 1: Instrument ==="
+	$(MAKE) CFLAGS="$(CFLAGS) $(WARNINGS) -O3 -march=native -fprofile-generate -DNDEBUG" \
+	       LDFLAGS="$(LDFLAGS) -fprofile-generate" $(BIN_DIR)/$(TARGET)
+	@echo "=== PGO Phase 2: Train ==="
+	@python3 -c "import random; f=open('/tmp/pgo_train.txt','w'); \
+	  [f.write(random.choice(['password=s3cret','AKIAIOSFODNN7EXAMPLE key','ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZab','2024-01-15 INFO GET /api 200 45ms','DEBUG cache HIT user_9382 ttl=300s','INFO upstream 200 OK latency=12ms','WARN pool at 80%% capacity','kafka OrderCreated','k8s readiness passed','redis HGET 1.2ms'])+'\'\n') for _ in range(500000)]; f.close()"
+	$(BIN_DIR)/$(TARGET) -q -p patterns/all.txt < /tmp/pgo_train.txt > /dev/null 2>/dev/null || true
+	@echo "=== PGO Phase 3: Optimize ==="
+	@rm -rf $(OBJ_DIR) $(BIN_DIR)
+	$(MAKE) CFLAGS="$(CFLAGS) $(WARNINGS) -Wno-error=coverage-mismatch -Wno-error=missing-profile \
+	       -O3 -march=native -flto -fprofile-use -fprofile-correction \
+	       -fomit-frame-pointer -fno-plt -ffunction-sections -fdata-sections -DNDEBUG" \
+	       LDFLAGS="$(LDFLAGS) -flto -fprofile-use -Wl,--gc-sections" $(BIN_DIR)/$(TARGET)
+	@rm -f /tmp/pgo_train.txt
+	@echo "=== PGO build complete ==="
+
 # Debug build
 debug: CFLAGS += $(WARNINGS) $(DEBUG_FLAGS)
 debug: $(BIN_DIR)/$(TARGET)
@@ -201,10 +219,13 @@ benchmark: release test-data
 	@echo ""
 	time $(BIN_DIR)/$(TARGET) < test_data/sample.log > /dev/null
 
-# Run full benchmark suite
+# Run full benchmark suite (human-readable)
 benchmark-full: $(BIN_DIR)/benchmark_suite
-	@echo "Running full benchmark suite..."
-	$(BIN_DIR)/benchmark_suite
+	@$(BIN_DIR)/benchmark_suite
+
+# Run benchmark with JSON output (for CI regression checks)
+benchmark-json: $(BIN_DIR)/benchmark_suite
+	@$(BIN_DIR)/benchmark_suite --json
 
 # Quick test
 test: debug

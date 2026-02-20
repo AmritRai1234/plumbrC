@@ -215,7 +215,7 @@ export default function DocsPage() {
                                     icon: Package,
                                     title: "Python",
                                     desc: "pip install plumbrc",
-                                    speed: "83K lines/sec",
+                                    speed: "2M lines/sec (bulk)",
                                 },
                                 {
                                     icon: Globe,
@@ -523,7 +523,7 @@ for (int i = 0; i < count; i++) {
                         <p className="text-zinc-400 mb-6">
                             The <code className="text-blue-400 text-sm">plumbrc</code> package
                             wraps the C engine via ctypes — same speed, zero network overhead.{" "}
-                            <strong className="text-zinc-300">83,000 lines/sec.</strong>
+                            <strong className="text-zinc-300">2M lines/sec (bulk API).</strong>
                         </p>
 
                         <h3 className="text-lg font-semibold text-white mb-3">Install</h3>
@@ -1002,10 +1002,10 @@ plumbr --version`}</Code>
                                     <tr className="border-t border-white/5">
                                         <td className="px-4 py-2 font-medium">Full (702 patterns)</td>
                                         <td className="px-4 py-2 text-emerald-400 font-mono">
-                                            1.1M lines/sec
+                                            2.1M lines/sec
                                         </td>
                                         <td className="px-4 py-2 text-emerald-400 font-mono">
-                                            2.6M lines/sec
+                                            3.3M lines/sec
                                         </td>
                                     </tr>
                                 </tbody>
@@ -1033,8 +1033,8 @@ plumbr --version`}</Code>
                                         ],
                                         [
                                             "Python package (ctypes → C)",
-                                            "83K lines/sec",
-                                            "FFI overhead (~12μs/call)",
+                                            "2M lines/sec (bulk)",
+                                            "FFI overhead (~0.5μs/line)",
                                         ],
                                         [
                                             "REST API (over internet)",
@@ -1099,7 +1099,7 @@ plumbr --version`}</Code>
 
                     {/* ─── Footer ─────────────────────────────────── */}
                     <footer className="pt-10 border-t border-white/5 text-sm text-zinc-500 flex justify-between">
-                        <span>PlumbrC — Open Source · MIT License</span>
+                        <span>PlumbrC — Source Available · Free for Open Source & Non-Commercial</span>
                         <a
                             href="https://github.com/AmritRai1234/plumbrC"
                             className="text-zinc-400 hover:text-white transition-colors"

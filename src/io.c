@@ -39,12 +39,14 @@ static bool io_refill(IOContext *ctx) {
     return true; /* Buffer full */
   }
 
-  ssize_t n = read(ctx->read_fd, ctx->read_buf + ctx->read_len, space);
+  /* SECURITY: Use loop instead of recursion to prevent stack overflow on
+   * sustained EINTR (e.g., signal storms) */
+  ssize_t n;
+  do {
+    n = read(ctx->read_fd, ctx->read_buf + ctx->read_len, space);
+  } while (n < 0 && errno == EINTR);
 
   if (n < 0) {
-    if (errno == EINTR) {
-      return io_refill(ctx); /* Retry on interrupt */
-    }
     ctx->read_eof = true;
     return false;
   }

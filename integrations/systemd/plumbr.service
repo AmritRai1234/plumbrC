@@ -9,7 +9,7 @@
 [Unit]
 Description=PlumbrC Log Redactor
 After=network.target
-Documentation=https://github.com/your-org/plumbrc
+Documentation=https://github.com/AmritRai1234/plumbrC
 
 [Service]
 Type=simple

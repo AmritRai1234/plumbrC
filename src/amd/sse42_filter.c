@@ -107,8 +107,14 @@ size_t sse42_build_triggers(const void *automaton, char *triggers,
 
   size_t count = 0;
 
-  /* Scan root state transitions — any non-zero transition
-   * means that character is a valid first byte for some pattern */
+  /* Collect up to max_triggers (16) unique first characters from the AC
+   * root state. When there are more unique first chars than can fit in the
+   * SSE4.2 register, this is a PARTIAL filter — some valid first chars
+   * will be missing and their lines will pass through unchecked.
+   *
+   * This is safe when PLUMBR_TWO_TIER_AC is enabled: the sentinel AC
+   * provides a second accurate filter after SSE4.2. Lines that slip past
+   * the partial SSE4.2 filter are caught by the sentinel. */
   for (int c = 0; c < AC_ALPHABET_SIZE && count < max_triggers; c++) {
     if (root_row[c] != 0) {
       triggers[count++] = (char)c;
