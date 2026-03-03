@@ -135,7 +135,7 @@ jobs:
               print(f'Single: {result}')
 
               # Bulk API
-              lines = p.redact_lines(['password=abc', 'Normal line', 'key=AKIAIOSFODNN7EXAMPLE'])
+              lines = p.redact_lines(['password=abcdef', 'Normal line', 'key=AKIAIOSFODNN7EXAMPLE'])
               assert len(lines) == 3
               assert 'REDACTED' in lines[0]
               assert lines[1] == 'Normal line'
