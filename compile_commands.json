@@ -1,47 +1,102 @@
 [
   {
     "directory": "/home/amrit/plumbrC",
-    "command": "gcc -std=c11 -I/home/amrit/plumbrC/include -c src/arena.c -o build/obj/arena.o",
+    "command": "gcc -std=c11 -D_GNU_SOURCE -I/home/amrit/plumbrC/include -I/home/amrit/plumbrC/src/amd -c src/arena.c -o build/obj/arena.o",
     "file": "src/arena.c"
   },
   {
     "directory": "/home/amrit/plumbrC",
-    "command": "gcc -std=c11 -I/home/amrit/plumbrC/include -c src/io.c -o build/obj/io.o",
+    "command": "gcc -std=c11 -D_GNU_SOURCE -I/home/amrit/plumbrC/include -I/home/amrit/plumbrC/src/amd -c src/io.c -o build/obj/io.o",
     "file": "src/io.c"
   },
   {
     "directory": "/home/amrit/plumbrC",
-    "command": "gcc -std=c11 -I/home/amrit/plumbrC/include -c src/aho_corasick.c -o build/obj/aho_corasick.o",
+    "command": "gcc -std=c11 -D_GNU_SOURCE -I/home/amrit/plumbrC/include -I/home/amrit/plumbrC/src/amd -c src/aho_corasick.c -o build/obj/aho_corasick.o",
     "file": "src/aho_corasick.c"
   },
   {
     "directory": "/home/amrit/plumbrC",
-    "command": "gcc -std=c11 -I/home/amrit/plumbrC/include -c src/patterns.c -o build/obj/patterns.o",
+    "command": "gcc -std=c11 -D_GNU_SOURCE -I/home/amrit/plumbrC/include -I/home/amrit/plumbrC/src/amd -c src/patterns.c -o build/obj/patterns.o",
     "file": "src/patterns.c"
   },
   {
     "directory": "/home/amrit/plumbrC",
-    "command": "gcc -std=c11 -I/home/amrit/plumbrC/include -c src/redactor.c -o build/obj/redactor.o",
+    "command": "gcc -std=c11 -D_GNU_SOURCE -I/home/amrit/plumbrC/include -I/home/amrit/plumbrC/src/amd -c src/redactor.c -o build/obj/redactor.o",
     "file": "src/redactor.c"
   },
   {
     "directory": "/home/amrit/plumbrC",
-    "command": "gcc -std=c11 -I/home/amrit/plumbrC/include -c src/main.c -o build/obj/main.o",
+    "command": "gcc -std=c11 -D_GNU_SOURCE -I/home/amrit/plumbrC/include -I/home/amrit/plumbrC/src/amd -c src/main.c -o build/obj/main.o",
     "file": "src/main.c"
   },
   {
     "directory": "/home/amrit/plumbrC",
-    "command": "gcc -std=c11 -I/home/amrit/plumbrC/include -c tests/test_patterns.c -o build/obj/test_patterns.o",
+    "command": "gcc -std=c11 -D_GNU_SOURCE -I/home/amrit/plumbrC/include -I/home/amrit/plumbrC/src/amd -c src/pipeline.c -o build/obj/pipeline.o",
+    "file": "src/pipeline.c"
+  },
+  {
+    "directory": "/home/amrit/plumbrC",
+    "command": "gcc -std=c11 -D_GNU_SOURCE -I/home/amrit/plumbrC/include -I/home/amrit/plumbrC/src/amd -c src/libplumbr.c -o build/obj/libplumbr.o",
+    "file": "src/libplumbr.c"
+  },
+  {
+    "directory": "/home/amrit/plumbrC",
+    "command": "gcc -std=c11 -D_GNU_SOURCE -I/home/amrit/plumbrC/include -I/home/amrit/plumbrC/src/amd -c src/parallel.c -o build/obj/parallel.o",
+    "file": "src/parallel.c"
+  },
+  {
+    "directory": "/home/amrit/plumbrC",
+    "command": "gcc -std=c11 -D_GNU_SOURCE -I/home/amrit/plumbrC/include -I/home/amrit/plumbrC/src/amd -c src/hwdetect.c -o build/obj/hwdetect.o",
+    "file": "src/hwdetect.c"
+  },
+  {
+    "directory": "/home/amrit/plumbrC",
+    "command": "gcc -std=c11 -D_GNU_SOURCE -I/home/amrit/plumbrC/include -I/home/amrit/plumbrC/src/amd -c src/server.c -o build/obj/server.o",
+    "file": "src/server.c"
+  },
+  {
+    "directory": "/home/amrit/plumbrC",
+    "command": "gcc -std=c11 -D_GNU_SOURCE -I/home/amrit/plumbrC/include -I/home/amrit/plumbrC/src/amd -c tests/test_patterns.c -o build/obj/test_patterns.o",
     "file": "tests/test_patterns.c"
   },
   {
     "directory": "/home/amrit/plumbrC",
-    "command": "gcc -std=c11 -I/home/amrit/plumbrC/include -c tests/test_redactor.c -o build/obj/test_redactor.o",
+    "command": "gcc -std=c11 -D_GNU_SOURCE -I/home/amrit/plumbrC/include -I/home/amrit/plumbrC/src/amd -c tests/test_redactor.c -o build/obj/test_redactor.o",
     "file": "tests/test_redactor.c"
   },
   {
     "directory": "/home/amrit/plumbrC",
-    "command": "gcc -std=c11 -I/home/amrit/plumbrC/include -c tests/benchmark.c -o build/obj/benchmark.o",
+    "command": "gcc -std=c11 -D_GNU_SOURCE -I/home/amrit/plumbrC/include -I/home/amrit/plumbrC/src/amd -c tests/test_security.c -o build/obj/test_security.o",
+    "file": "tests/test_security.c"
+  },
+  {
+    "directory": "/home/amrit/plumbrC",
+    "command": "gcc -std=c11 -D_GNU_SOURCE -I/home/amrit/plumbrC/include -I/home/amrit/plumbrC/src/amd -c tests/test_libplumbr.c -o build/obj/test_libplumbr.o",
+    "file": "tests/test_libplumbr.c"
+  },
+  {
+    "directory": "/home/amrit/plumbrC",
+    "command": "gcc -std=c11 -D_GNU_SOURCE -I/home/amrit/plumbrC/include -I/home/amrit/plumbrC/src/amd -c tests/test_io.c -o build/obj/test_io.o",
+    "file": "tests/test_io.c"
+  },
+  {
+    "directory": "/home/amrit/plumbrC",
+    "command": "gcc -std=c11 -D_GNU_SOURCE -I/home/amrit/plumbrC/include -I/home/amrit/plumbrC/src/amd -c tests/benchmark.c -o build/obj/benchmark.o",
     "file": "tests/benchmark.c"
+  },
+  {
+    "directory": "/home/amrit/plumbrC",
+    "command": "gcc -std=c11 -D_GNU_SOURCE -I/home/amrit/plumbrC/include -I/home/amrit/plumbrC/src/amd -c tests/fuzz_json.c -o build/obj/fuzz_json.o",
+    "file": "tests/fuzz_json.c"
+  },
+  {
+    "directory": "/home/amrit/plumbrC",
+    "command": "gcc -std=c11 -D_GNU_SOURCE -I/home/amrit/plumbrC/include -I/home/amrit/plumbrC/src/amd -c tests/fuzz_redactor.c -o build/obj/fuzz_redactor.o",
+    "file": "tests/fuzz_redactor.c"
+  },
+  {
+    "directory": "/home/amrit/plumbrC",
+    "command": "gcc -std=c11 -D_GNU_SOURCE -I/home/amrit/plumbrC/include -c tests/fuzz_http.c -o build/obj/fuzz_http.o",
+    "file": "tests/fuzz_http.c"
   }
 ]

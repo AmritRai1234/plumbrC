@@ -188,12 +188,13 @@ test-data:
 	@echo "Generated test_data/sample.log"
 
 # Build and run unit tests
-test-unit: debug $(BIN_DIR)/test_patterns $(BIN_DIR)/test_redactor $(BIN_DIR)/test_libplumbr $(BIN_DIR)/test_io
+test-unit: debug $(BIN_DIR)/test_patterns $(BIN_DIR)/test_redactor $(BIN_DIR)/test_libplumbr $(BIN_DIR)/test_io $(BIN_DIR)/test_security
 	@echo "Running unit tests..."
 	$(BIN_DIR)/test_patterns
 	$(BIN_DIR)/test_redactor
 	$(BIN_DIR)/test_libplumbr
 	$(BIN_DIR)/test_io
+	$(BIN_DIR)/test_security
 
 # Build test executables
 $(BIN_DIR)/test_patterns: tests/test_patterns.c $(LIB_OBJS) | $(BIN_DIR)
@@ -206,6 +207,9 @@ $(BIN_DIR)/test_libplumbr: tests/test_libplumbr.c $(LIB_OBJS) | $(BIN_DIR)
 	$(CC) $(CFLAGS) -g -O0 $< $(LIB_OBJS) -o $@ $(LDFLAGS)
 
 $(BIN_DIR)/test_io: tests/test_io.c $(LIB_OBJS) | $(BIN_DIR)
+	$(CC) $(CFLAGS) -g -O0 $< $(LIB_OBJS) -o $@ $(LDFLAGS)
+
+$(BIN_DIR)/test_security: tests/test_security.c $(LIB_OBJS) | $(BIN_DIR)
 	$(CC) $(CFLAGS) -g -O0 $< $(LIB_OBJS) -o $@ $(LDFLAGS)
 
 $(BIN_DIR)/benchmark_suite: tests/benchmark.c $(LIB_OBJS) | $(BIN_DIR)
@@ -267,11 +271,47 @@ help:
 	@echo "  make server   - Build HTTP API server"
 	@echo "  make grpc     - Build gRPC API server"
 	@echo "  make test     - Quick functionality test"
+	@echo "  make test-unit- Build and run all unit tests"
 	@echo "  make benchmark- Run performance benchmark"
+	@echo "  make fuzz     - Build libFuzzer harnesses (requires clang)"
 	@echo "  make clean    - Remove build artifacts"
 	@echo "  make install  - Install to /usr/local/bin"
 	@echo "  make analyze  - Run static analysis"
 	@echo "  make help     - Show this help"
+
+# ─── Fuzz targets (requires clang with libFuzzer) ─────────────
+
+FUZZ_CC = clang
+FUZZ_FLAGS = -g -O1 -fsanitize=fuzzer,address -I$(INC_DIR) -D_GNU_SOURCE
+FUZZ_LDFLAGS = -lpcre2-8 -lpthread -fsanitize=fuzzer,address
+
+FUZZ_LIB_SRCS = $(filter-out $(SRC_DIR)/main.c $(SRC_DIR)/server.c,$(wildcard $(SRC_DIR)/*.c))
+
+.PHONY: fuzz fuzz-json fuzz-redactor fuzz-http
+
+fuzz: $(BIN_DIR)/fuzz_json $(BIN_DIR)/fuzz_redactor $(BIN_DIR)/fuzz_http
+	@echo "Fuzz harnesses built in $(BIN_DIR)/"
+	@echo "  Run: $(BIN_DIR)/fuzz_json -max_len=4096 -timeout=5"
+	@echo "  Run: $(BIN_DIR)/fuzz_redactor -max_len=65536 -timeout=10"
+	@echo "  Run: $(BIN_DIR)/fuzz_http -max_len=8192 -timeout=5"
+
+$(BIN_DIR)/fuzz_json: tests/fuzz_json.c $(FUZZ_LIB_SRCS) | $(BIN_DIR)
+	$(FUZZ_CC) $(FUZZ_FLAGS) $^ -o $@ $(FUZZ_LDFLAGS)
+
+$(BIN_DIR)/fuzz_redactor: tests/fuzz_redactor.c $(FUZZ_LIB_SRCS) | $(BIN_DIR)
+	$(FUZZ_CC) $(FUZZ_FLAGS) $^ -o $@ $(FUZZ_LDFLAGS)
+
+$(BIN_DIR)/fuzz_http: tests/fuzz_http.c | $(BIN_DIR)
+	$(FUZZ_CC) $(FUZZ_FLAGS) $< -o $@ -fsanitize=fuzzer,address
+
+fuzz-json: $(BIN_DIR)/fuzz_json
+	$(BIN_DIR)/fuzz_json -max_len=4096 -timeout=5 -runs=100000
+
+fuzz-redactor: $(BIN_DIR)/fuzz_redactor
+	$(BIN_DIR)/fuzz_redactor -max_len=65536 -timeout=10 -runs=100000
+
+fuzz-http: $(BIN_DIR)/fuzz_http
+	$(BIN_DIR)/fuzz_http -max_len=8192 -timeout=5 -runs=100000
 
 # ─── gRPC server build ─────────────────────────────────────────
 

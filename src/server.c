@@ -27,6 +27,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <getopt.h>
+#include <limits.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <pthread.h>
@@ -156,7 +157,10 @@ static int parse_content_length(const char *headers, size_t header_len) {
       /* SECURITY: Use strtol instead of atoi to detect overflow/negative */
       char *endptr;
       long cl = strtol(val, &endptr, 10);
-      if (endptr == val || cl < 0 || cl > MAX_BODY_SIZE) {
+      /* SECURITY FIX #6: Added INT_MAX guard to prevent type truncation.
+       * strtol returns long (64-bit on LP64), but return type is int (32-bit).
+       * Values between INT_MAX and MAX_BODY_SIZE could silently truncate. */
+      if (endptr == val || cl < 0 || cl > MAX_BODY_SIZE || cl > INT_MAX) {
         return -1; /* Invalid, negative, or too large */
       }
       return (int)cl;
@@ -267,8 +271,12 @@ static bool extract_json_text(const char *json, size_t json_len,
   while (key < end) {
     if (*key == '\\') {
       /* SECURITY: bounds check before skipping escape pair */
+      /* SECURITY FIX #7: Changed break to return false.
+       * A lone backslash at end of input caused the loop to exit and
+       * fall through to the final return false — but only by accident.
+       * The break left the parser in an undefined state. */
       if (key + 1 >= end)
-        break;
+        return false;
       key += 2; /* skip escape sequence */
       continue;
     }
@@ -330,7 +338,10 @@ static size_t json_unescape(char *buf, size_t len) {
 static char *json_escape(const char *input, size_t input_len, size_t *out_len) {
   /* Worst case: every char needs escaping = 6x */
   /* SECURITY: Check for multiplication overflow */
-  if (input_len > SIZE_MAX / 6) {
+  /* SECURITY FIX #3: Changed SIZE_MAX/6 to (SIZE_MAX-1)/6 to account
+   * for the +1 null terminator in the allocation below. Without this,
+   * input_len * 6 + 1 could overflow to 0, causing a zero-byte malloc. */
+  if (input_len > (SIZE_MAX - 1) / 6) {
     return NULL;
   }
   size_t max_len = input_len * 6 + 1;
@@ -574,6 +585,20 @@ static void handle_redact(int fd, libplumbr_t *plumbr, const char *body,
 
     /* Ensure output buffer has space */
     while (out_pos + result_len + 2 > out_capacity) {
+      /* SECURITY FIX #4: Guard against size_t overflow before doubling.
+       * out_capacity *= 2 wraps to 0 when out_capacity > SIZE_MAX/2,
+       * causing realloc(0) which returns a freeable pointer that's then
+       * written past — classic heap overflow. */
+      if (out_capacity > SIZE_MAX / 2) {
+        free(output);
+        free(text_buf);
+        if (redacted)
+          free(redacted);
+        send_json_error(fd, 500, "Internal Server Error", "Output too large",
+                        keep_alive);
+        atomic_fetch_add(&g_requests_err, 1);
+        return;
+      }
       out_capacity *= 2;
       char *new_out = realloc(output, out_capacity);
       if (!new_out) {
@@ -821,6 +846,12 @@ static void handle_redact_batch(int fd, libplumbr_t *plumbr, const char *body,
         modified++;
 
       while (out_pos + res_len + 2 > out_cap) {
+        /* SECURITY FIX #9: Same overflow guard as fix #4 for batch path. */
+        if (out_cap > SIZE_MAX / 2) {
+          free(out);
+          out = NULL;
+          break;
+        }
         out_cap *= 2;
         char *new_out = realloc(out, out_cap);
         if (!new_out) {

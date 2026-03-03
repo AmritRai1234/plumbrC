@@ -191,7 +191,10 @@ static int process_parallel_new(PlumbrContext *ctx, int num_threads) {
     outputs[i] = malloc(PLUMBR_MAX_LINE_SIZE);
     line_copies[i] = malloc(PLUMBR_MAX_LINE_SIZE);
     if (!outputs[i] || !line_copies[i]) {
-      for (size_t j = 0; j <= i; j++) {
+      /* SECURITY FIX #8: Changed <= to < to avoid freeing the failed
+       * allocation index. When outputs[i] or line_copies[i] fails,
+       * freeing index i double-frees or frees uninitialized memory. */
+      for (size_t j = 0; j < i; j++) {
         free(outputs[j]);
         free(line_copies[j]);
       }

@@ -137,7 +137,10 @@ static size_t verify_ac_matches(Redactor *r, const char *line, size_t len,
 
     /* Try to match near the AC hit position */
     size_t search_start = 0;
-    if (ac->position >= ac->length) {
+    /* SECURITY FIX #2: Changed >= to > to prevent integer underflow.
+     * When position == length, subtraction yields 0 which then underflows
+     * when 10 is subtracted below (unsigned arithmetic). */
+    if (ac->position > ac->length) {
       search_start = ac->position - ac->length;
     }
     if (search_start >= 10) {
@@ -156,7 +159,10 @@ static size_t verify_ac_matches(Redactor *r, const char *line, size_t len,
 
     if (rc > 0) {
       PCRE2_SIZE *ovector = pcre2_get_ovector_pointer(md);
-      if (ovector[1] <= len) {
+      /* SECURITY FIX #5: Check both ovector[0] AND ovector[1] against len.
+       * Previously only [1] was checked; a malformed match could produce
+       * ovector[0] > len, causing an out-of-bounds read in redactor_apply. */
+      if (ovector[0] <= len && ovector[1] <= len) {
         verified[num_verified].start = ovector[0];
         verified[num_verified].end = ovector[1];
         verified[num_verified].pattern_id = ac->pattern_id;
@@ -300,7 +306,11 @@ static const char *redactor_apply(Redactor *r, const char *line, size_t len,
   }
 
   size_t remaining = len - in_pos;
-  if (remaining > 0 && out_pos + remaining < r->output_capacity) {
+  /* SECURITY FIX #1: Changed < to <= to prevent 1-byte buffer overflow.
+   * When remaining == capacity - out_pos, the old < check rejected the
+   * write, silently dropping the trailing data. With <=, the exact-fit
+   * case is handled correctly. */
+  if (remaining > 0 && out_pos + remaining <= r->output_capacity) {
     memcpy(r->output_buf + out_pos, line + in_pos, remaining);
     out_pos += remaining;
   }
