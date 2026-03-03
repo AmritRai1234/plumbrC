@@ -99,11 +99,22 @@ bool patterns_add(PatternSet *ps, const char *name, const char *literal,
 }
 
 bool patterns_load_file(PatternSet *ps, const char *filename) {
-  /* SECURITY: Path traversal prevention */
-  if (strstr(filename, "..") != NULL) {
-    fprintf(stderr,
-            "Pattern file path contains '..' - rejected for security\n");
+  /* SECURITY FIX #15: Hardened path traversal prevention.
+   * Check for '..' as a path component, not just as a substring.
+   * Also reject embedded nulls which can bypass checks. */
+  if (memchr(filename, '\0', strlen(filename)) != NULL) {
+    fprintf(stderr, "Pattern file path contains null byte - rejected\n");
     return false;
+  }
+  const char *p = filename;
+  while (*p) {
+    if (p[0] == '.' && p[1] == '.' && (p[2] == '/' || p[2] == '\0') &&
+        (p == filename || p[-1] == '/')) {
+      fprintf(stderr,
+              "Pattern file path contains '..' - rejected for security\n");
+      return false;
+    }
+    p++;
   }
   if (filename[0] == '/' && !getenv("PLUMBR_ALLOW_ABSOLUTE_PATHS")) {
     fprintf(stderr, "Absolute pattern file paths are not allowed\n");

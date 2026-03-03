@@ -11,6 +11,7 @@
 #include "redactor.h"
 
 #include <dirent.h>
+#include <limits.h>
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -194,6 +195,11 @@ int libplumbr_redact_batch(libplumbr_t *p, const char **inputs,
   if (!p || !inputs || !outputs)
     return -1;
 
+  /* SECURITY FIX #13: Guard against int truncation on return.
+   * count is size_t but return type is int. Values > INT_MAX truncate. */
+  if (count > (size_t)INT_MAX)
+    return -1;
+
   for (size_t i = 0; i < count; i++) {
     outputs[i] = libplumbr_redact(p, inputs[i], input_lens[i],
                                   output_lens ? &output_lens[i] : NULL);
@@ -252,6 +258,10 @@ char *libplumbr_redact_buffer(libplumbr_t *p, const char *input,
 
   /* Worst case: each line could expand (redaction tags are fixed-size).
    * Allocate 2x input as a safe upper bound. */
+  /* SECURITY FIX #11: Guard against overflow. input_len * 2 + 1 overflows
+   * when input_len > SIZE_MAX / 2. */
+  if (input_len > SIZE_MAX / 2)
+    return NULL;
   size_t cap = input_len * 2 + 1;
   char *output = malloc(cap);
   if (!output)
@@ -273,7 +283,14 @@ char *libplumbr_redact_buffer(libplumbr_t *p, const char *input,
 
     /* Ensure output buffer has space */
     if (out_pos + redacted_len + 1 >= cap) {
-      cap = (out_pos + redacted_len + 1) * 2;
+      /* SECURITY FIX #12: Guard against overflow in growth calculation.
+       * (out_pos + redacted_len + 1) * 2 can overflow on large buffers. */
+      size_t needed = out_pos + redacted_len + 1;
+      if (needed > SIZE_MAX / 2) {
+        free(output);
+        return NULL;
+      }
+      cap = needed * 2;
       char *tmp = realloc(output, cap);
       if (!tmp) {
         free(output);

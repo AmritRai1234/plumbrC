@@ -210,7 +210,8 @@ int parallel_process(ParallelCtx *ctx, const char **lines,
   }
 
   /* Distribute work */
-  size_t per_thread = (count + ctx->num_threads - 1) / ctx->num_threads;
+  size_t per_thread =
+      (count + (size_t)ctx->num_threads - 1) / (size_t)ctx->num_threads;
 
   for (int i = 0; i < ctx->num_threads; i++) {
     Worker *w = &ctx->workers[i];
@@ -218,7 +219,9 @@ int parallel_process(ParallelCtx *ctx, const char **lines,
     w->lengths = lengths;
     w->outputs = outputs;
     w->out_lengths = out_lengths;
-    w->start_idx = i * per_thread;
+    /* SECURITY FIX #14: Cast i to size_t before multiplying to prevent
+     * integer overflow when per_thread is large. */
+    w->start_idx = (size_t)i * per_thread;
     w->end_idx = w->start_idx + per_thread;
     if (w->end_idx > count)
       w->end_idx = count;
