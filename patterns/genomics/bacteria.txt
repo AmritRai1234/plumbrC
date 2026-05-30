@@ -1,0 +1,129 @@
+# PlumbrC Genomics — Bacterial Pathogen Signatures
+# Format: name|literal|regex|replacement
+#
+# 16S rRNA V3-V4 region signatures and species-specific gene markers.
+# These short fragments are unique identifiers for each bacterial species.
+
+# ============================================
+# Critical Priority — Sepsis / Bloodstream
+# ============================================
+
+# Staphylococcus aureus (MRSA) — nuc gene (thermonuclease, species-specific)
+staph_aureus|GCGATTGATGGTGATACGGTTAAATGAAATATGGTCCTGAAGCAAGTGC|GCGATTGATGGTGATACGGTTAAATGAAATATGGTCCTGAAGCAAGTGC|[PATHOGEN:S.aureus:nuc]
+
+# MRSA — mecA gene (methicillin resistance marker)
+mrsa_meca|TGGCCAATACAGGAACAGCATATGAGATAGGCATCGTTCCAAAGAATGT|TGGCCAATACAGGAACAGCATATGAGATAGGCATCGTTCCAAAGAATGT|[PATHOGEN:MRSA:mecA]
+
+# Escherichia coli — uidA (beta-glucuronidase, species-specific)
+ecoli_uida|AAAACGGCAAGAAAAAGCAGTCTTACTTCCATGATTTCTTTAACTACGAC|AAAACGGCAAGAAAAAGCAGTCTTACTTCCATGATTTCTTTAACTACGAC|[PATHOGEN:E.coli:uidA]
+
+# E. coli O157:H7 (EHEC) — stx1 shiga toxin
+ecoli_o157_stx|ATAAATCGCCATTCGTTGACTACTTCTTATCTGGATTTAATGTCGCATAG|ATAAATCGCCATTCGTTGACTACTTCTTATCTGGATTTAATGTCGCATAG|[PATHOGEN:E.coli_O157:stx1]
+
+# Klebsiella pneumoniae — khe hemolysin
+klebsiella_pneu|ATGAAACAAAGCACTATTGCACTGGCACTCTTACCGTTACTGTTTACCCCT|ATGAAACAAAGCACTATTGCACTGGCACTCTTACCGTTACTGTTTACCCCT|[PATHOGEN:K.pneumoniae:khe]
+
+# Pseudomonas aeruginosa — ecfX (species-specific sigma factor)
+pseudo_aerug|ATGGATGAGCGCTTCCGTGATTGCCTGGCGATCCCGCAGTTGATCGTCG|ATGGATGAGCGCTTCCGTGATTGCCTGGCGATCCCGCAGTTGATCGTCG|[PATHOGEN:P.aeruginosa:ecfX]
+
+# Acinetobacter baumannii — blaOXA-51 (intrinsic, species-specific)
+acineto_baum|ATGAATAAATATTTTACTTGCTATGTCAATGGTTTGATAGCTTGATCGCCC|ATGAATAAATATTTTACTTGCTATGTCAATGGTTTGATAGCTTGATCGCCC|[PATHOGEN:A.baumannii:OXA51]
+
+# Enterococcus faecalis — ddl (D-Ala-D-Ala ligase)
+entero_faecalis|ATCAAGTACAGTTAGTCTTTATTTAGCGATTTACGGCATGACATCTATGA|ATCAAGTACAGTTAGTCTTTATTTAGCGATTTACGGCATGACATCTATGA|[PATHOGEN:E.faecalis:ddl]
+
+# Enterococcus faecium — ddl (species-specific variant)
+entero_faecium|TAGAGACATTGAATATGCCTTATGTTCTCTTGCTTTTGAAAAAGGAGCAA|TAGAGACATTGAATATGCCTTATGTTCTCTTGCTTTTGAAAAAGGAGCAA|[PATHOGEN:E.faecium:ddl]
+
+# ============================================
+# Respiratory Pathogens
+# ============================================
+
+# Streptococcus pneumoniae — lytA autolysin
+strep_pneumo|ACGATAGCTATCTTAGCGAAAGCCAACAGATAGCAGACACAATAAGTCAGC|ACGATAGCTATCTTAGCGAAAGCCAACAGATAGCAGACACAATAAGTCAGC|[PATHOGEN:S.pneumoniae:lytA]
+
+# Streptococcus pyogenes (Group A Strep) — speB cysteine protease
+strep_pyogenes|ATGAATAAAAAAGCAATTATTGGCTTATTCCTCTTAGGAGCAGCGCTTGCG|ATGAATAAAAAAGCAATTATTGGCTTATTCCTCTTAGGAGCAGCGCTTGCG|[PATHOGEN:S.pyogenes:speB]
+
+# Haemophilus influenzae — P6 outer membrane protein
+haem_influen|ATGAACAAATTAGTTAAATTTACCGCATTAACAGCTGCAGGTGTATCAGCC|ATGAACAAATTAGTTAAATTTACCGCATTAACAGCTGCAGGTGTATCAGCC|[PATHOGEN:H.influenzae:P6]
+
+# Mycoplasma pneumoniae — P1 adhesin
+myco_pneumo|AAGGCCAAGCAAGGATCAAACCAGCTATCATTGATACCAAGGCTCCCCAGTC|AAGGCCAAGCAAGGATCAAACCAGCTATCATTGATACCAAGGCTCCCCAGTC|[PATHOGEN:M.pneumoniae:P1]
+
+# Bordetella pertussis (whooping cough) — pertussis toxin ptxA
+bordetella|ATGAAACGATCCTGCCTCATCCCAGTCCTCAGCCCTTCTTCACTTCAGTTGG|ATGAAACGATCCTGCCTCATCCCAGTCCTCAGCCCTTCTTCACTTCAGTTGG|[PATHOGEN:B.pertussis:ptxA]
+
+# Legionella pneumophila — mip (macrophage infectivity potentiator)
+legionella|ATGGCAATGAAAGCAAAACTCAATAAACTGAAAGCTGAAATGGATAAGCCCC|ATGGCAATGAAAGCAAAACTCAATAAACTGAAAGCTGAAATGGATAAGCCCC|[PATHOGEN:L.pneumophila:mip]
+
+# ============================================
+# Gastrointestinal Pathogens
+# ============================================
+
+# Clostridioides difficile — tcdB toxin B
+cdiff_tcdb|AATGAATCTAAATCATGCTAAAGCAGATAAGCTTGATGAATTAAATAAAG|AATGAATCTAAATCATGCTAAAGCAGATAAGCTTGATGAATTAAATAAAG|[PATHOGEN:C.difficile:tcdB]
+
+# Salmonella enterica — invA (invasion gene, genus-specific)
+salmonella|ATGCCGCTATGATAAAGGATTTGAATCAACAGACTCTTGGTCGGTCACGCG|ATGCCGCTATGATAAAGGATTTGAATCAACAGACTCTTGGTCGGTCACGCG|[PATHOGEN:Salmonella:invA]
+
+# Campylobacter jejuni — cadF adhesion protein
+campylo_jej|ATGGCAAATAAAGCTTTAGTAACACTATTAAAATCACTCGCTTTAATCATTG|ATGGCAAATAAAGCTTTAGTAACACTATTAAAATCACTCGCTTTAATCATTG|[PATHOGEN:C.jejuni:cadF]
+
+# Vibrio cholerae — ctxA cholera toxin subunit A
+vibrio_chol|ATGATTAAATTAAAATTTGGTGTTTTTTTTACAGTTTTACTATCTTCAGC|ATGATTAAATTAAAATTTGGTGTTTTTTTTACAGTTTTACTATCTTCAGC|[PATHOGEN:V.cholerae:ctxA]
+
+# Helicobacter pylori — ureC urease (species-specific)
+hpylori|ATGAAACTCACCCCAAAAGAAATCACTGATGGCACCAACAACCCTTTAGGGGG|ATGAAACTCACCCCAAAAGAAATCACTGATGGCACCAACAACCCTTTAGGGGG|[PATHOGEN:H.pylori:ureC]
+
+# Listeria monocytogenes — hly listeriolysin O
+listeria|ATGAAAAAAATAATGCTAGTTTTTATTACACTTATATTAGTTAGTCTACCACC|ATGAAAAAAATAATGCTAGTTTTTATTACACTTATATTAGTTAGTCTACCACC|[PATHOGEN:L.monocytogenes:hly]
+
+# Shigella — ipaH (invasion plasmid antigen)
+shigella|ATGATTTCATCGCAATCAAAGCAACGTCTTCACAGAGGAGCCATCAAATTTAC|ATGATTTCATCGCAATCAAAGCAACGTCTTCACAGAGGAGCCATCAAATTTAC|[PATHOGEN:Shigella:ipaH]
+
+# ============================================
+# Urinary Tract / STI Pathogens
+# ============================================
+
+# Neisseria gonorrhoeae — porA porin
+neisseria_gon|ATGAAAAAATCCCTGATTACTCTGCCGTCTGAAGCCGGCCTTGCGCCGATC|ATGAAAAAATCCCTGATTACTCTGCCGTCTGAAGCCGGCCTTGCGCCGATC|[PATHOGEN:N.gonorrhoeae:porA]
+
+# Chlamydia trachomatis — ompA major outer membrane protein
+chlamydia|ATGAAAAAACTCTTGAAATCGGTATTAACTTATACATCTGCAGCTTTGTCATCC|ATGAAAAAACTCTTGAAATCGGTATTAACTTATACATCTGCAGCTTTGTCATCC|[PATHOGEN:C.trachomatis:ompA]
+
+# Treponema pallidum (syphilis) — tpp47
+treponema|ATGATGAACCGATTCGCCCTCGCGATCGTGTTTTTACTCATTCTCCAAGCACC|ATGATGAACCGATTCGCCCTCGCGATCGTGTTTTTACTCATTCTCCAAGCACC|[PATHOGEN:T.pallidum:tpp47]
+
+# Proteus mirabilis — zapA metalloprotease
+proteus|ATGTTAAAAAATAATGATCAGAAGTATCAGTTAGCGGTAAACTATTCCTCCGCC|ATGTTAAAAAATAATGATCAGAAGTATCAGTTAGCGGTAAACTATTCCTCCGCC|[PATHOGEN:P.mirabilis:zapA]
+
+# ============================================
+# Mycobacteria
+# ============================================
+
+# Mycobacterium tuberculosis — IS6110 insertion element (gold standard diagnostic)
+mtb_is6110|CGATCGGCCCGTCCGTGATCAGCGACCGGATCACCACTGCTCACGGCTG|CGATCGGCCCGTCCGTGATCAGCGACCGGATCACCACTGCTCACGGCTG|[PATHOGEN:M.tuberculosis:IS6110]
+
+# M. tuberculosis — rpoB (rifampin resistance region)
+mtb_rpob|GGTCGGCATGTCGCGGATGGAGCGGGTGGTCATGACCCTGGCCAAGAAAG|GGTCGGCATGTCGCGGATGGAGCGGGTGGTCATGACCCTGGCCAAGAAAG|[PATHOGEN:M.tuberculosis:rpoB]
+
+# ============================================
+# Meningitis / CNS
+# ============================================
+
+# Neisseria meningitidis — ctrA capsule transport
+neisseria_men|ATGAGCAAACTCAACAAATCCGTCATCATCGTCTCCGCCGTCATCGGCAG|ATGAGCAAACTCAACAAATCCGTCATCATCGTCTCCGCCGTCATCGGCAG|[PATHOGEN:N.meningitidis:ctrA]
+
+# ============================================
+# Tropical / Vector-borne (Bacterial)
+# ============================================
+
+# Yersinia pestis (plague) — pla plasminogen activator
+yersinia|ATGTTATTTTCGCTTAATATTTCTGAAATTGGTAAAACCGTAACATTACTCCC|ATGTTATTTTCGCTTAATATTTCTGAAATTGGTAAAACCGTAACATTACTCCC|[PATHOGEN:Y.pestis:pla]
+
+# Rickettsia rickettsii (Rocky Mountain spotted fever) — ompA
+rickettsia|ATGATCGCAGTATTAATGCCCAGTCTCCCAGCGCGGACCCAATTCATAACG|ATGATCGCAGTATTAATGCCCAGTCTCCCAGCGCGGACCCAATTCATAACG|[PATHOGEN:R.rickettsii:ompA]
+
+# Borrelia burgdorferi (Lyme disease) — ospA outer surface protein
+borrelia_lyme|ATGAAAAAATATTTATTGGGAATAGGTCTAATATTAGCCTTAATAGCATGT|ATGAAAAAATATTTATTGGGAATAGGTCTAATATTAGCCTTAATAGCATGT|[PATHOGEN:B.burgdorferi:ospA]

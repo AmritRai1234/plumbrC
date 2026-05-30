@@ -1,0 +1,77 @@
+# PlumbrC Genomics — Pathogen Signatures
+# Format: name|literal|regex|replacement
+#
+# These are curated marker sequences from published genomes.
+# Each literal is a unique 30-80bp signature region that identifies the pathogen.
+# Sources: NCBI GenBank accession numbers noted in comments.
+#
+# IMPORTANT: These are SHORT signature fragments, not full genes.
+# They are selected for uniqueness — each appears only in the target organism.
+
+# ============================================
+# SARS-CoV-2 (COVID-19) — NC_045512.2
+# ============================================
+
+# Spike protein receptor binding domain (RBD) — unique to SARS-CoV-2
+sarscov2_spike|ATGTTTGTTTTTCTTGTTTTATTGCCACTAGTCTCTAGTCAGTGT|ATGTTTGTTTTTCTTGTTTTATTGCCACTAGTCTCTAGTCAGTGT|[PATHOGEN:SARS-CoV-2:spike_RBD]
+
+# RNA-dependent RNA polymerase (RdRp) — WHO diagnostic target
+sarscov2_rdrp|GGTAACTGGTATGATTTCGGTGATTTCATACAAACCACGCCAGG|GGTAACTGGTATGATTTCGGTGATTTCATACAAACCACGCCAGG|[PATHOGEN:SARS-CoV-2:RdRp]
+
+# Nucleocapsid (N) gene — CDC N1 primer target region
+sarscov2_n1|GACCCCAAAATCAGCGAAATGCACCCCGCATTACGTTTGGTGGACC|GACCCCAAAATCAGCGAAATGCACCCCGCATTACGTTTGGTGGACC|[PATHOGEN:SARS-CoV-2:N_gene]
+
+# Envelope (E) gene — Charité/WHO screening target
+sarscov2_e|ACAGGTACGTTAATAGTTAATAGCGTACTTCTTTTTCTTGCTTTCGTGGT|ACAGGTACGTTAATAGTTAATAGCGTACTTCTTTTTCTTGCTTTCGTGGT|[PATHOGEN:SARS-CoV-2:E_gene]
+
+# ============================================
+# Influenza A — Various subtypes
+# ============================================
+
+# Matrix (M) gene — conserved across all Influenza A subtypes
+influenza_a_m|ATGAGTCTTCTAACCGAGGTCGAAACGTACGTTCTCTCTATCGTCCC|ATGAGTCTTCTAACCGAGGTCGAAACGTACGTTCTCTCTATCGTCCC|[PATHOGEN:Influenza_A:M_gene]
+
+# H1N1 hemagglutinin signature
+influenza_h1n1|ATGAAGGCAAACCTACTGGTCCTGTTATGTGCACTTGCAGCTGCAGAT|ATGAAGGCAAACCTACTGGTCCTGTTATGTGCACTTGCAGCTGCAGAT|[PATHOGEN:Influenza_A_H1N1:HA]
+
+# H3N2 hemagglutinin signature
+influenza_h3n2|ATGAAGACTATCATTGCTTTGAGCTACATTCTATGTCTGGTTTTCGCTC|ATGAAGACTATCATTGCTTTGAGCTACATTCTATGTCTGGTTTTCGCTC|[PATHOGEN:Influenza_A_H3N2:HA]
+
+# H5N1 (avian flu) hemagglutinin
+influenza_h5n1|ATGGAGAAAATAGTGCTTCTTCTTGCAATAGTCAGTCTTGTTAAAAGTG|ATGGAGAAAATAGTGCTTCTTCTTGCAATAGTCAGTCTTGTTAAAAGTG|[PATHOGEN:Influenza_A_H5N1:HA]
+
+# ============================================
+# Influenza B
+# ============================================
+
+influenza_b|ATGAAGGCAATAATTGTACTACTCATGGTAGTAACATCCAATGCAGATCGA|ATGAAGGCAATAATTGTACTACTCATGGTAGTAACATCCAATGCAGATCGA|[PATHOGEN:Influenza_B:HA]
+
+# ============================================
+# RSV (Respiratory Syncytial Virus)
+# ============================================
+
+# RSV-A fusion protein
+rsv_a|ATGGAGTTGCTAATCCTCAAAGCAAATGCAATTACCACAATCCTCACTGC|ATGGAGTTGCTAATCCTCAAAGCAAATGCAATTACCACAATCCTCACTGC|[PATHOGEN:RSV_A:F_gene]
+
+# RSV-B fusion protein
+rsv_b|ATGGAGTTGCCAATCCTCAAAGCAAATGCAATTACCACAATCCTCGCTGC|ATGGAGTTGCCAATCCTCAAAGCAAATGCAATTACCACAATCCTCGCTGC|[PATHOGEN:RSV_B:F_gene]
+
+# ============================================
+# HIV-1
+# ============================================
+
+# gag polyprotein — highly conserved
+hiv1_gag|ATGGGTGCGAGAGCGTCAGTATTAAGCGGGGGAGAATTAGATCGATGG|ATGGGTGCGAGAGCGTCAGTATTAAGCGGGGGAGAATTAGATCGATGG|[PATHOGEN:HIV-1:gag]
+
+# pol reverse transcriptase
+hiv1_pol|CCCATTAGTCCTATTGAAACTGTACCAGTAAAAAAGCCAGGAATGGATGG|CCCATTAGTCCTATTGAAACTGTACCAGTAAAAAAGCCAGGAATGGATGG|[PATHOGEN:HIV-1:pol_RT]
+
+# ============================================
+# Hepatitis
+# ============================================
+
+# Hepatitis B surface antigen (HBsAg)
+hbv_surface|ATGGAGAACATCACATCAGGATTCCTAGGACCCCTGCTCGTGTTACAGG|ATGGAGAACATCACATCAGGATTCCTAGGACCCCTGCTCGTGTTACAGG|[PATHOGEN:HBV:surface_Ag]
+
+# Hepatitis C NS5B (RNA polymerase) — genotype 1
+hcv_ns5b|ATGTCCTACTCCTCCATGCCCCCCCTTGACCTGAATGATGGGTCTTCTTCC|ATGTCCTACTCCTCCATGCCCCCCCTTGACCTGAATGATGGGTCTTCTTCC|[PATHOGEN:HCV:NS5B]

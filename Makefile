@@ -130,6 +130,11 @@ test-unit: debug $(BIN_DIR)/test_patterns $(BIN_DIR)/test_redactor $(BIN_DIR)/te
 
 test: test-unit
 
+# DNA Genomics tests
+dna-test: debug $(BIN_DIR)/test_dna
+	@echo "Running DNA pathogen scanner tests..."
+	$(BIN_DIR)/test_dna
+
 $(BIN_DIR)/test_patterns: tests/test_patterns.c $(ALL_LIB_OBJS) | $(BIN_DIR)
 	$(CC) $(CFLAGS) -g -O0 $< $(ALL_LIB_OBJS) -o $@ $(LDFLAGS)
 
@@ -143,6 +148,9 @@ $(BIN_DIR)/test_io: tests/test_io.c $(ALL_LIB_OBJS) | $(BIN_DIR)
 	$(CC) $(CFLAGS) -g -O0 $< $(ALL_LIB_OBJS) -o $@ $(LDFLAGS)
 
 $(BIN_DIR)/test_security: tests/test_security.c $(ALL_LIB_OBJS) | $(BIN_DIR)
+	$(CC) $(CFLAGS) -g -O0 $< $(ALL_LIB_OBJS) -o $@ $(LDFLAGS)
+
+$(BIN_DIR)/test_dna: tests/test_dna.c $(ALL_LIB_OBJS) | $(BIN_DIR)
 	$(CC) $(CFLAGS) -g -O0 $< $(ALL_LIB_OBJS) -o $@ $(LDFLAGS)
 
 # ─── Benchmarks ───────────────────────────────────────────────
