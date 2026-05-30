@@ -14,6 +14,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <stdatomic.h>
 
 /* Per-worker context */
 typedef struct {
@@ -35,7 +36,7 @@ typedef struct {
   /* Synchronization */
   pthread_barrier_t *start_barrier;
   pthread_barrier_t *done_barrier;
-  volatile int *shutdown;
+  _Atomic int *shutdown;
 
   /* Stats */
   size_t patterns_matched;
@@ -54,7 +55,7 @@ struct ParallelCtx {
   pthread_barrier_t start_barrier;
   pthread_barrier_t done_barrier;
 
-  volatile int shutdown;
+  _Atomic int shutdown;
 
   /* Aggregate stats */
   size_t total_patterns_matched;
@@ -70,7 +71,7 @@ static void *worker_func(void *arg) {
     pthread_barrier_wait(w->start_barrier);
 
     /* Check shutdown */
-    if (*w->shutdown) {
+    if (atomic_load(w->shutdown)) {
       break;
     }
 
@@ -137,7 +138,7 @@ ParallelCtx *parallel_create(int num_threads, PatternSet *patterns,
   ctx->num_threads = num_threads;
   ctx->patterns = patterns;
   ctx->max_line_size = max_line_size;
-  ctx->shutdown = 0;
+  atomic_store(&ctx->shutdown, 0);
 
   /* Initialize barriers (+1 for main thread) */
   pthread_barrier_init(&ctx->start_barrier, NULL, num_threads + 1);
@@ -181,7 +182,7 @@ ParallelCtx *parallel_create(int num_threads, PatternSet *patterns,
 
 cleanup:
   /* Cleanup on failure */
-  ctx->shutdown = 1;
+  atomic_store(&ctx->shutdown, 1);
   pthread_barrier_destroy(&ctx->start_barrier);
   pthread_barrier_destroy(&ctx->done_barrier);
 
@@ -261,7 +262,7 @@ void parallel_destroy(ParallelCtx *ctx) {
     return;
 
   /* Signal shutdown */
-  ctx->shutdown = 1;
+  atomic_store(&ctx->shutdown, 1);
 
   /* Wake workers so they can exit */
   pthread_barrier_wait(&ctx->start_barrier);

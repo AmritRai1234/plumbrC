@@ -1,0 +1,52 @@
+# PlumbrC Sidecar — Docker Compose Example
+#
+# This runs PlumbrC as a sidecar alongside your application server.
+# Your app sends log lines to PlumbrC for redaction before they reach
+# your logging pipeline (ELK, Datadog, CloudWatch, etc.)
+#
+# Usage:
+#   docker compose up
+#   curl -X POST http://localhost:3000/login \
+#     -H 'Content-Type: application/json' \
+#     -d '{"email": "user@test.com", "password": "secret123"}'
+#
+# The password will be redacted in all logs.
+
+services:
+  # PlumbrC redaction sidecar
+  plumbr:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    command: >
+      /usr/local/bin/plumbr-server
+      --port 8081
+      --threads 2
+      --pattern-file /usr/local/share/plumbr/patterns/all.txt
+    ports:
+      - "8081:8081"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '1.0'
+
+  # Your application server (Express.js example)
+  app:
+    build:
+      context: ./express
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - PLUMBR_URL=http://plumbr:8081
+    depends_on:
+      plumbr:
+        condition: service_healthy
+    restart: unless-stopped

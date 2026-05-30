@@ -13,6 +13,7 @@
 #include <chrono>
 #include <cstring>
 #include <iostream>
+#include <stdexcept>
 #include <memory>
 #include <string>
 #include <thread>
@@ -242,17 +243,23 @@ int main(int argc, char *argv[]) {
 
   for (int i = 1; i < argc; i++) {
     std::string arg = argv[i];
-    if (arg == "--port" && i + 1 < argc) {
-      port = std::stoi(argv[++i]);
-    } else if (arg == "--threads" && i + 1 < argc) {
-      num_threads = std::stoi(argv[++i]);
-    } else if (arg == "--pattern-dir" && i + 1 < argc) {
-      pattern_dir = argv[++i];
-    } else if (arg == "--pattern-file" && i + 1 < argc) {
-      pattern_file = argv[++i];
-    } else if (arg == "--help") {
-      print_usage(argv[0]);
-      return 0;
+    try {
+      if (arg == "--port" && i + 1 < argc) {
+        port = std::stoi(argv[++i]);
+      } else if (arg == "--threads" && i + 1 < argc) {
+        num_threads = std::stoi(argv[++i]);
+      } else if (arg == "--pattern-dir" && i + 1 < argc) {
+        pattern_dir = argv[++i];
+      } else if (arg == "--pattern-file" && i + 1 < argc) {
+        pattern_file = argv[++i];
+      } else if (arg == "--help") {
+        print_usage(argv[0]);
+        return 0;
+      }
+    } catch (const std::exception &e) {
+      std::cerr << "Error parsing argument '" << arg << "': " << e.what()
+                << "\n";
+      return 1;
     }
   }
 

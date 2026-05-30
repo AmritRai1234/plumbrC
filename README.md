@@ -1,12 +1,12 @@
 <p align="center">
   <h1 align="center">PlumbrC</h1>
   <p align="center"><strong>High-Performance Log Redaction Engine</strong></p>
-  <p align="center">Pure C11 &bull; 5M+ lines/sec &bull; Zero-allocation hot path &bull; 793 patterns</p>
+  <p align="center">Pure C11 &bull; 9.25M lines/sec &bull; Zero-allocation hot path &bull; 793 patterns</p>
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/language-C11-blue.svg" alt="Language">
-  <img src="https://img.shields.io/badge/performance-5M%20lines%2Fsec-brightgreen.svg" alt="Performance">
+  <img src="https://img.shields.io/badge/performance-9.25M%20lines%2Fsec-brightgreen.svg" alt="Performance">
   <img src="https://img.shields.io/badge/patterns-793-green.svg" alt="Patterns">
   <img src="https://img.shields.io/badge/memory-0%20leaks-success.svg" alt="Memory">
   <img src="https://img.shields.io/badge/python-pip%20install%20plumbrc-3776AB.svg?logo=python&logoColor=white" alt="Python">
@@ -15,7 +15,7 @@
 
 ---
 
-PlumbrC detects and removes secrets from log streams in real time. Three-phase matching — SSE4.2 sentinel scan → Aho-Corasick literal DFA → PCRE2 JIT regex — achieves **5M+ lines/sec** on commodity hardware with 793 patterns.
+PlumbrC detects and removes secrets from log streams in real time. Three-phase matching — SSE4.2 sentinel scan → Aho-Corasick literal DFA → PCRE2 JIT regex — achieves **9.25M lines/sec** on commodity hardware with 793 patterns.
 
 **Website**: [plumbr.ca](https://plumbr.ca) | **Developer Portal**: [plumbr.ca/developers](https://plumbr.ca/developers) | **Docs**: [plumbr.ca/playground](https://plumbr.ca/playground)
 
@@ -23,13 +23,15 @@ PlumbrC detects and removes secrets from log streams in real time. Three-phase m
 
 | Scenario | Throughput | MB/s | Config |
 |---|---|---|---|
-| 5M enterprise (5% secrets) | **5.15M lines/sec** | 482 | 8 threads, 702 patterns |
-| 1M clean lines | 3.70M lines/sec | 346 | 1 thread |
-| 1M 10% secrets | 3.16M lines/sec | 296 | 1 thread |
-| Python bulk API (1K batch) | 1.78M lines/sec | — | ctypes, 702 patterns |
-| Python single-line | 401K lines/sec | — | ctypes, 702 patterns |
+| 5M enterprise (5% secrets) | **9.25M lines/sec** | 865 | auto (10 threads), 14 patterns |
+| 1M clean lines | 7.73M lines/sec | 723 | auto (10 threads) |
+| 1M 10% secrets | 7.33M lines/sec | 687 | auto (10 threads) |
+| 1M 100% secrets | 5.14M lines/sec | 492 | auto (10 threads) |
+| 5M enterprise (1T) | 4.57M lines/sec | 428 | 1 thread |
+| 1M clean lines (1T) | 4.80M lines/sec | 448 | 1 thread |
+| 1M 10% secrets (1T) | 4.17M lines/sec | 391 | 1 thread |
 
-Benchmarked on AMD Ryzen 5 5600X (6C/12T), 32GB DDR4-3200.
+Benchmarked on AMD Zen 3 (8C/16T), auto-tuned to 10 threads.
 
 ```bash
 make benchmark-full   # Human-readable results

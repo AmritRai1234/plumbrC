@@ -20,6 +20,49 @@
 #include <time.h>
 #include <unistd.h>
 
+/* Resolve a data file path relative to the binary location.
+ * Tries: 1) PLUMBR_DATA_DIR env var  2) /proc/self/exe directory  3) relative path (fallback) */
+static bool resolve_data_path(const char *relative, char *out, size_t out_size) {
+  /* 1. Check env var override */
+  const char *data_dir = getenv("PLUMBR_DATA_DIR");
+  if (data_dir) {
+    int n = snprintf(out, out_size, "%s/%s", data_dir, relative);
+    if (n > 0 && (size_t)n < out_size && access(out, R_OK) == 0)
+      return true;
+  }
+
+  /* 2. Resolve relative to binary location via /proc/self/exe */
+  char exe_path[4096];
+  ssize_t len = readlink("/proc/self/exe", exe_path, sizeof(exe_path) - 1);
+  if (len > 0) {
+    exe_path[len] = '\0';
+    /* Find last slash to get directory */
+    char *slash = strrchr(exe_path, '/');
+    if (slash) {
+      *slash = '\0';
+      /* Try: <exe_dir>/../<relative>  (typical install layout) */
+      int n = snprintf(out, out_size, "%s/../%s", exe_path, relative);
+      if (n > 0 && (size_t)n < out_size && access(out, R_OK) == 0)
+        return true;
+      /* Try: <exe_dir>/<relative> */
+      n = snprintf(out, out_size, "%s/%s", exe_path, relative);
+      if (n > 0 && (size_t)n < out_size && access(out, R_OK) == 0)
+        return true;
+    }
+  }
+
+  /* 3. Try /usr/local/share/plumbr/<relative> */
+  {
+    int n = snprintf(out, out_size, "/usr/local/share/plumbr/%s", relative);
+    if (n > 0 && (size_t)n < out_size && access(out, R_OK) == 0)
+      return true;
+  }
+
+  /* 4. Fallback: use relative path as-is (works if CWD is project root) */
+  snprintf(out, out_size, "%s", relative);
+  return access(out, R_OK) == 0;
+}
+
 struct PlumbrContext {
   Arena arena;
   PatternSet *patterns;
@@ -104,14 +147,15 @@ PlumbrContext *plumbr_create(const PlumbrConfig *config) {
       }
     }
 
-    if (load_hipaa)
-      patterns_load_file(ctx->patterns, "patterns/compliance/hipaa.txt");
-    if (load_pci)
-      patterns_load_file(ctx->patterns, "patterns/compliance/pci_dss.txt");
-    if (load_gdpr)
-      patterns_load_file(ctx->patterns, "patterns/compliance/gdpr.txt");
-    if (load_soc2)
-      patterns_load_file(ctx->patterns, "patterns/compliance/soc2.txt");
+    char resolved[4096];
+    if (load_hipaa && resolve_data_path("patterns/compliance/hipaa.txt", resolved, sizeof(resolved)))
+      patterns_load_file(ctx->patterns, resolved);
+    if (load_pci && resolve_data_path("patterns/compliance/pci_dss.txt", resolved, sizeof(resolved)))
+      patterns_load_file(ctx->patterns, resolved);
+    if (load_gdpr && resolve_data_path("patterns/compliance/gdpr.txt", resolved, sizeof(resolved)))
+      patterns_load_file(ctx->patterns, resolved);
+    if (load_soc2 && resolve_data_path("patterns/compliance/soc2.txt", resolved, sizeof(resolved)))
+      patterns_load_file(ctx->patterns, resolved);
   }
 
   /* Build automaton */

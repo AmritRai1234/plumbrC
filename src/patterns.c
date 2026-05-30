@@ -100,10 +100,16 @@ bool patterns_add(PatternSet *ps, const char *name, const char *literal,
 
 bool patterns_load_file(PatternSet *ps, const char *filename) {
   /* SECURITY FIX #15: Hardened path traversal prevention.
-   * Check for '..' as a path component, not just as a substring.
-   * Also reject embedded nulls which can bypass checks. */
-  if (memchr(filename, '\0', strlen(filename)) != NULL) {
-    fprintf(stderr, "Pattern file path contains null byte - rejected\n");
+   * Reject empty filenames and unreasonably long paths.
+   * Note: Embedded null-byte protection must happen at the FFI boundary
+   * (Python/Go wrapper) since C strings are inherently null-terminated. */
+  if (!filename || filename[0] == '\0') {
+    fprintf(stderr, "Pattern file path is empty - rejected\n");
+    return false;
+  }
+  size_t filename_len = strlen(filename);
+  if (filename_len > 4095) {
+    fprintf(stderr, "Pattern file path too long - rejected\n");
     return false;
   }
   const char *p = filename;

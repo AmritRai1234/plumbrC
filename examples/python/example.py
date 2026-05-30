@@ -32,11 +32,12 @@ if not lib:
     print("Error: libplumbr.so not found. Build with: make shared")
     exit(1)
 
-# Define types
+# Define types — must match libplumbr_config_t in include/libplumbr.h
 class PlumbrConfig(Structure):
     _fields_ = [
         ("pattern_file", c_char_p),
         ("pattern_dir", c_char_p),
+        ("compliance", c_char_p),
         ("num_threads", c_int),
         ("quiet", c_int),
     ]
@@ -51,38 +52,42 @@ class PlumbrStats(Structure):
     ]
 
 # Set up function signatures
-lib.plumbr_new.argtypes = [POINTER(PlumbrConfig)]
-lib.plumbr_new.restype = c_void_p
+lib.libplumbr_new.argtypes = [POINTER(PlumbrConfig)]
+lib.libplumbr_new.restype = c_void_p
 
-lib.plumbr_redact.argtypes = [c_void_p, c_char_p, c_size_t, POINTER(c_size_t)]
-lib.plumbr_redact.restype = c_void_p  # Returns char* that we need to free
+lib.libplumbr_redact.argtypes = [c_void_p, c_char_p, c_size_t, POINTER(c_size_t)]
+lib.libplumbr_redact.restype = c_void_p  # Returns char* that we need to free
 
-lib.plumbr_free.argtypes = [c_void_p]
-lib.plumbr_free.restype = None
+lib.libplumbr_free.argtypes = [c_void_p]
+lib.libplumbr_free.restype = None
 
-lib.plumbr_version.argtypes = []
-lib.plumbr_version.restype = c_char_p
+lib.libplumbr_free_string.argtypes = [c_void_p]
+lib.libplumbr_free_string.restype = None
 
-lib.plumbr_pattern_count.argtypes = [c_void_p]
-lib.plumbr_pattern_count.restype = c_size_t
+lib.libplumbr_version.argtypes = []
+lib.libplumbr_version.restype = c_char_p
 
-lib.plumbr_get_stats.argtypes = [c_void_p]
-lib.plumbr_get_stats.restype = PlumbrStats
+lib.libplumbr_pattern_count.argtypes = [c_void_p]
+lib.libplumbr_pattern_count.restype = c_size_t
+
+lib.libplumbr_get_stats.argtypes = [c_void_p]
+lib.libplumbr_get_stats.restype = PlumbrStats
 
 
 class Plumbr:
     """Python wrapper for libplumbr"""
     
-    def __init__(self, pattern_file=None, pattern_dir=None):
+    def __init__(self, pattern_file=None, pattern_dir=None, compliance=None):
         config = None
-        if pattern_file or pattern_dir:
+        if pattern_file or pattern_dir or compliance:
             config = PlumbrConfig()
             config.pattern_file = pattern_file.encode() if pattern_file else None
             config.pattern_dir = pattern_dir.encode() if pattern_dir else None
+            config.compliance = compliance.encode() if compliance else None
             config.num_threads = 0
             config.quiet = 1
         
-        self._handle = lib.plumbr_new(ctypes.byref(config) if config else None)
+        self._handle = lib.libplumbr_new(ctypes.byref(config) if config else None)
         if not self._handle:
             raise RuntimeError("Failed to create Plumbr instance")
     
@@ -91,7 +96,7 @@ class Plumbr:
         input_bytes = text.encode('utf-8')
         out_len = c_size_t()
         
-        result_ptr = lib.plumbr_redact(
+        result_ptr = lib.libplumbr_redact(
             self._handle, 
             input_bytes, 
             len(input_bytes),
@@ -101,19 +106,19 @@ class Plumbr:
         if not result_ptr:
             return text
         
-        # Copy result and free the C string
+        # Copy result and free the C string using the proper API
         result = ctypes.string_at(result_ptr, out_len.value).decode('utf-8')
-        ctypes.CDLL(None).free(result_ptr)
+        lib.libplumbr_free_string(result_ptr)
         
         return result
     
     @property
     def pattern_count(self) -> int:
-        return lib.plumbr_pattern_count(self._handle)
+        return lib.libplumbr_pattern_count(self._handle)
     
     @property
     def stats(self) -> dict:
-        s = lib.plumbr_get_stats(self._handle)
+        s = lib.libplumbr_get_stats(self._handle)
         return {
             "lines_processed": s.lines_processed,
             "lines_modified": s.lines_modified,
@@ -122,12 +127,12 @@ class Plumbr:
     
     def __del__(self):
         if hasattr(self, '_handle') and self._handle:
-            lib.plumbr_free(self._handle)
+            lib.libplumbr_free(self._handle)
 
 
 def main():
     print(f"PlumbrC Python Example")
-    print(f"Version: {lib.plumbr_version().decode()}\n")
+    print(f"Version: {lib.libplumbr_version().decode()}\n")
     
     # Create instance
     p = Plumbr()
