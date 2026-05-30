@@ -1,20 +1,20 @@
 <p align="center">
   <h1 align="center">PlumbrC</h1>
   <p align="center"><strong>High-Performance Log Redaction Library</strong></p>
-  <p align="center">Pure C11 &bull; 6.4M lines/sec &bull; Zero-allocation hot path &bull; 793 patterns</p>
+  <p align="center">Pure C11 &bull; 9.2M lines/sec &bull; Zero-allocation hot path &bull; 14 built-in patterns</p>
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/language-C11-blue.svg" alt="Language">
-  <img src="https://img.shields.io/badge/performance-6.4M%20lines%2Fsec-brightgreen.svg" alt="Performance">
-  <img src="https://img.shields.io/badge/patterns-793-green.svg" alt="Patterns">
-  <img src="https://img.shields.io/badge/memory-0%20leaks-success.svg" alt="Memory">
+  <img src="https://img.shields.io/badge/performance-9.2M%20lines%2Fsec-brightgreen.svg" alt="Performance">
+  <img src="https://img.shields.io/badge/throughput-860%20MB%2Fs-blue.svg" alt="Throughput">
+  <img src="https://img.shields.io/badge/memory-0%20allocs%20hot%20path-success.svg" alt="Memory">
   <img src="https://img.shields.io/badge/license-Source%20Available-orange.svg" alt="License">
 </p>
 
 ---
 
-PlumbrC is a C11 library that detects and removes secrets from text at high speed. Three-phase matching — SSE4.2 sentinel scan → Aho-Corasick literal DFA → PCRE2 JIT regex — achieves **6.4M lines/sec** on commodity hardware with 793 patterns.
+PlumbrC is a C11 library that detects and removes secrets from text at extreme speed. Three-phase matching — SSE4.2 sentinel scan → Aho-Corasick literal DFA → PCRE2 JIT regex — achieves **9.2M lines/sec** on commodity hardware with zero heap allocations on the hot path.
 
 ## Build
 
@@ -31,7 +31,7 @@ make shared
 # Build both
 make libs
 
-# Run tests
+# Run tests (45 unit tests)
 make test
 
 # Run benchmarks
@@ -98,31 +98,34 @@ input → SSE4.2 Sentinel → Hot AC DFA (L1) → Cold AC DFA → PCRE2 JIT → 
 
 | Optimization | Detail |
 |---|---|
-| Two-level AC DFA | Hot (20 patterns) fits in L1 cache, cold handles all 702 |
-| SSE4.2 sentinel | PCMPISTRI scans 16 bytes/cycle for trigger characters |
-| Arena allocation | Zero malloc in hot path |
-| PCRE2 JIT | Native-code regex for final verification |
-| No-Literal bypass | Fast-path pre-checks avoid PCRE2 on clean lines |
-| ReDoS protection | Match limits prevent regex backtracking attacks |
+| Two-tier AC DFA | Hot (20 patterns) fits in L1 cache, cold DFA handles all patterns |
+| Bitmap-compressed DFA | Sparse rows use 256-bit bitmap + popcount for cache efficiency |
+| SSE4.2 sentinel | `PCMPISTRI` scans 16 bytes/cycle for trigger characters |
+| Arena allocation | Zero `malloc` on hot path — all scratch memory pre-allocated |
+| PCRE2 JIT | Native-code regex with JIT for both literal and no-literal patterns |
+| Pattern type enum | Integer `switch` replaces `strcmp` for hot-path dispatch |
+| Fused I/O | Single `memcpy` for line + newline, 256KB read / 128KB write buffers |
+| ReDoS protection | Match limits prevent regex catastrophic backtracking attacks |
+| Auto-tuned threads | CPU-aware thread count (1.75× physical cores on Zen 3/4) |
 
 ## Benchmark
 
 | Scenario | Throughput | MB/s | Config |
 |---|---|---|---|
-| 5M enterprise (5% secrets) | **6.37M lines/sec** | 596 | auto (10 threads) |
-| 1M clean lines | 5.89M lines/sec | 550 | auto (10 threads) |
-| 1M 10% secrets | 6.25M lines/sec | 585 | auto (10 threads) |
-| 1M 100% secrets | 4.09M lines/sec | 392 | auto (10 threads) |
-| 1M clean lines (1T) | 2.79M lines/sec | 260 | 1 thread |
-| 5M enterprise (1T) | 2.67M lines/sec | 250 | 1 thread |
+| 1M clean lines | **9.21M lines/sec** | 861 | auto (14 threads) |
+| 5M enterprise (5% secrets) | **8.77M lines/sec** | 821 | auto (14 threads) |
+| 1M 10% secrets | 8.24M lines/sec | 772 | auto (14 threads) |
+| 1M 100% secrets | 5.52M lines/sec | 528 | auto (14 threads) |
+| 1M clean lines (1T) | 3.25M lines/sec | 303 | 1 thread |
+| 5M enterprise (1T) | 3.12M lines/sec | 292 | 1 thread |
 
-Benchmarked on AMD Zen 3 (8C/16T).
+Benchmarked on AMD Zen 3 (Ryzen 5000, 8C/16T). Results may vary by ±5% between runs.
 
 ## Pattern Library
 
-793 patterns across 12 categories:
+14 built-in patterns covering common secret types:
 
-**Cloud**: AWS, GCP, Azure • **Communication**: Slack, Discord, Teams • **Payment**: Stripe, PayPal • **VCS**: GitHub, GitLab, Bitbucket • **Infrastructure**: SSH, TLS, Docker • **Crypto**: Private keys, mnemonics • **Auth**: JWT, OAuth, API keys • **PII**: SSN, email, phone • **Database**: connection strings • **Analytics**: Mixpanel, Segment • **Social**: Facebook, Twitter • **Secrets**: Generic passwords, tokens
+**Credentials**: AWS access keys, passwords, generic secrets • **Tokens**: GitHub (`ghp_`), JWT (`eyJ`), API keys • **Keys**: RSA/EC private keys • **PII**: Email addresses, SSN, credit cards, IPv4 • **Infrastructure**: Database connection URIs
 
 ### Compliance Profiles
 
@@ -139,7 +142,7 @@ Benchmarked on AMD Zen 3 (8C/16T).
 make            # Static library (libplumbr.a)
 make shared     # Shared library (libplumbr.so)
 make libs       # Both static and shared
-make test       # Unit tests
+make test       # Unit tests (45 tests across 5 suites)
 make sanitize   # Build with ASan + UBSan
 make benchmark-full  # Performance benchmarks
 make fuzz       # Build libFuzzer harnesses
