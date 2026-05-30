@@ -41,6 +41,8 @@ typedef struct PatternSet {
 #if PLUMBR_TWO_TIER_AC
   ACAutomaton *sentinel; /* L1-resident tier-1 AC for fast line rejection */
 #endif
+  uint32_t no_literal_ids[PLUMBR_MAX_PATTERNS];
+  size_t no_literal_count;
   Arena *arena;
   bool built;
 } PatternSet;

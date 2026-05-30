@@ -38,6 +38,10 @@ int parallel_process(ParallelCtx *ctx, const char **lines,
 /* Get stats */
 size_t parallel_patterns_matched(const ParallelCtx *ctx);
 size_t parallel_lines_modified(const ParallelCtx *ctx);
+void parallel_reset_stats(ParallelCtx *ctx);
+void parallel_get_batch_buffers(ParallelCtx *ctx, const char ***out_lines,
+                                 size_t **out_lengths, char ***out_outputs,
+                                 size_t **out_out_lengths, char ***out_line_copies);
 
 /* Destroy */
 void parallel_destroy(ParallelCtx *ctx);

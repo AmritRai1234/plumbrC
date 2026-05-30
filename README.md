@@ -74,6 +74,10 @@ stdin → SSE4.2 Sentinel → Hot AC DFA (L1 cache) → Cold AC DFA → PCRE2 JI
 | PCRE2 JIT | Native-code regex for final verification |
 | PGO build | Profile-guided optimization via `make pgo` |
 | ReDoS protection | Match limits prevent regex backtracking attacks |
+| No-Literal bypass | Fast-path pre-checks to avoid PCRE2 JIT scanning on clean log streams |
+| Parallel Cache | Reusable worker context memory to avoid thread-level allocation overhead |
+| JSON Safety | Syntax-aware JSON parsing to prevent key prefix collisions |
+| Secure CORS | CORS disabled by default unless explicitly configured via environment variable |
 
 ## Compliance Profiles
 

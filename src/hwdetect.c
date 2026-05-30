@@ -171,6 +171,9 @@ static void detect_features(CpuInfo *cpu) {
     }
   }
 #endif
+#ifdef __aarch64__
+  cpu->has_neon = true;
+#endif
 }
 
 /* Detect cache info */
@@ -449,6 +452,8 @@ void hwdetect_print(const HardwareInfo *info) {
     fprintf(stderr, "SSE4.2 ");
   if (info->cpu.has_sse2)
     fprintf(stderr, "SSE2 ");
+  if (info->cpu.has_neon)
+    fprintf(stderr, "NEON ");
   fprintf(stderr, "\n");
 
   if (info->cpu.is_zen3)

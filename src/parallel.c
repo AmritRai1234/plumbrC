@@ -60,6 +60,13 @@ struct ParallelCtx {
   /* Aggregate stats */
   size_t total_patterns_matched;
   size_t total_lines_modified;
+
+  /* Persistent Batch Storage to avoid heap allocation latency */
+  const char **lines;
+  size_t *lengths;
+  char **outputs;
+  size_t *out_lengths;
+  char **line_copies;
 };
 
 /* Worker thread function */
@@ -140,6 +147,45 @@ ParallelCtx *parallel_create(int num_threads, PatternSet *patterns,
   ctx->max_line_size = max_line_size;
   atomic_store(&ctx->shutdown, 0);
 
+  /* Allocate persistent batch storage */
+  ctx->lines = malloc(PLUMBR_BATCH_SIZE * sizeof(char *));
+  ctx->lengths = malloc(PLUMBR_BATCH_SIZE * sizeof(size_t));
+  ctx->outputs = malloc(PLUMBR_BATCH_SIZE * sizeof(char *));
+  ctx->out_lengths = malloc(PLUMBR_BATCH_SIZE * sizeof(size_t));
+  ctx->line_copies = malloc(PLUMBR_BATCH_SIZE * sizeof(char *));
+
+  if (!ctx->lines || !ctx->lengths || !ctx->outputs || !ctx->out_lengths || !ctx->line_copies) {
+    free((void *)ctx->lines);
+    free(ctx->lengths);
+    free(ctx->outputs);
+    free(ctx->out_lengths);
+    free(ctx->line_copies);
+    free(ctx);
+    return NULL;
+  }
+
+  /* Initialize persistent batch buffers */
+  size_t k;
+  for (k = 0; k < PLUMBR_BATCH_SIZE; k++) {
+    ctx->outputs[k] = malloc(max_line_size);
+    ctx->line_copies[k] = malloc(max_line_size);
+    if (!ctx->outputs[k] || !ctx->line_copies[k]) {
+      for (size_t j = 0; j < k; j++) {
+        free(ctx->outputs[j]);
+        free(ctx->line_copies[j]);
+      }
+      free(ctx->outputs[k]);
+      free(ctx->line_copies[k]);
+      free((void *)ctx->lines);
+      free(ctx->lengths);
+      free(ctx->outputs);
+      free(ctx->out_lengths);
+      free(ctx->line_copies);
+      free(ctx);
+      return NULL;
+    }
+  }
+
   /* Initialize barriers (+1 for main thread) */
   pthread_barrier_init(&ctx->start_barrier, NULL, num_threads + 1);
   pthread_barrier_init(&ctx->done_barrier, NULL, num_threads + 1);
@@ -147,6 +193,17 @@ ParallelCtx *parallel_create(int num_threads, PatternSet *patterns,
   /* Create workers */
   ctx->workers = calloc(num_threads, sizeof(Worker));
   if (!ctx->workers) {
+    for (size_t j = 0; j < PLUMBR_BATCH_SIZE; j++) {
+      free(ctx->outputs[j]);
+      free(ctx->line_copies[j]);
+    }
+    free((void *)ctx->lines);
+    free(ctx->lengths);
+    free(ctx->outputs);
+    free(ctx->out_lengths);
+    free(ctx->line_copies);
+    pthread_barrier_destroy(&ctx->start_barrier);
+    pthread_barrier_destroy(&ctx->done_barrier);
     free(ctx);
     return NULL;
   }
@@ -197,6 +254,18 @@ cleanup:
   if (i < num_threads) {
     arena_destroy(&ctx->workers[i].arena);
   }
+
+  /* Free persistent batch storage */
+  for (size_t j = 0; j < PLUMBR_BATCH_SIZE; j++) {
+    free(ctx->outputs[j]);
+    free(ctx->line_copies[j]);
+  }
+  free((void *)ctx->lines);
+  free(ctx->lengths);
+  free(ctx->outputs);
+  free(ctx->out_lengths);
+  free(ctx->line_copies);
+
   free(ctx->workers);
   free(ctx);
   return NULL;
@@ -256,6 +325,27 @@ size_t parallel_lines_modified(const ParallelCtx *ctx) {
   return total;
 }
 
+void parallel_reset_stats(ParallelCtx *ctx) {
+  if (!ctx) return;
+  ctx->total_patterns_matched = 0;
+  ctx->total_lines_modified = 0;
+  for (int i = 0; i < ctx->num_threads; i++) {
+    ctx->workers[i].patterns_matched = 0;
+    ctx->workers[i].lines_modified = 0;
+  }
+}
+
+void parallel_get_batch_buffers(ParallelCtx *ctx, const char ***out_lines,
+                                 size_t **out_lengths, char ***out_outputs,
+                                 size_t **out_out_lengths, char ***out_line_copies) {
+  if (!ctx) return;
+  if (out_lines) *out_lines = ctx->lines;
+  if (out_lengths) *out_lengths = ctx->lengths;
+  if (out_outputs) *out_outputs = ctx->outputs;
+  if (out_out_lengths) *out_out_lengths = ctx->out_lengths;
+  if (out_line_copies) *out_line_copies = ctx->line_copies;
+}
+
 /* Destroy */
 void parallel_destroy(ParallelCtx *ctx) {
   if (!ctx)
@@ -276,6 +366,17 @@ void parallel_destroy(ParallelCtx *ctx) {
 
   pthread_barrier_destroy(&ctx->start_barrier);
   pthread_barrier_destroy(&ctx->done_barrier);
+
+  /* Free persistent batch storage */
+  for (size_t k = 0; k < PLUMBR_BATCH_SIZE; k++) {
+    free(ctx->outputs[k]);
+    free(ctx->line_copies[k]);
+  }
+  free((void *)ctx->lines);
+  free(ctx->lengths);
+  free(ctx->outputs);
+  free(ctx->out_lengths);
+  free(ctx->line_copies);
 
   free(ctx->workers);
   free(ctx);

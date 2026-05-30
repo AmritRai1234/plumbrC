@@ -465,14 +465,59 @@ static inline int16_t compressed_lookup(const uint8_t *compressed,
   int word = c >> 6; /* Which 64-bit word (0-3) */
   int bit = c & 63;  /* Which bit in word */
 
-  if (!(bm[word] & (1ULL << bit)))
+  uint64_t b = bm[word];
+  if (!(b & (1ULL << bit)))
     return def; /* Default transition — fast path */
 
   /* Count set bits below this position = index into packed transitions */
-  int pos = 0;
+  uint64_t pos = 0;
+  uint64_t mask = (1ULL << bit) - 1;
+  uint64_t masked_word = b & mask;
+
+  uint64_t val0 = (word > 0) ? bm[0] : 0;
+  uint64_t val1 = (word > 1) ? bm[1] : 0;
+  uint64_t val2 = (word > 2) ? bm[2] : 0;
+
+#if defined(__x86_64__)
+  /* High-performance branchless x86_64 assembly using native popcnt */
+  __asm__ (
+      "popcnt %[masked], %[pos]\n\t"
+      "popcnt %[val0], %%rax\n\t"
+      "add %%rax, %[pos]\n\t"
+      "popcnt %[val1], %%rax\n\t"
+      "add %%rax, %[pos]\n\t"
+      "popcnt %[val2], %%rax\n\t"
+      "add %%rax, %[pos]\n\t"
+      : [pos] "=&r"(pos)
+      : [masked] "r"(masked_word), [val0] "r"(val0), [val1] "r"(val1), [val2] "r"(val2)
+      : "rax", "cc"
+  );
+#elif defined(__aarch64__)
+  /* High-performance branchless ARM64 assembly using NEON popcnt and vertical sum */
+  __asm__ (
+      "fmov d0, %[masked]\n\t"
+      "fmov d1, %[val0]\n\t"
+      "ins v0.d[1], v1.d[0]\n\t"
+      "fmov d2, %[val1]\n\t"
+      "fmov d3, %[val2]\n\t"
+      "ins v2.d[1], v3.d[0]\n\t"
+      "cnt v0.16b, v0.16b\n\t"
+      "cnt v2.16b, v2.16b\n\t"
+      "addv b0, v0.16b\n\t"
+      "addv b2, v2.16b\n\t"
+      "umov %w[pos], v0.b[0]\n\t"
+      "umov w1, v2.b[0]\n\t"
+      "add %w[pos], %w[pos], w1\n\t"
+      : [pos] "=&r"(pos)
+      : [masked] "r"(masked_word), [val0] "r"(val0), [val1] "r"(val1), [val2] "r"(val2)
+      : "v0", "v1", "v2", "v3", "x1", "cc"
+  );
+#else
+  /* Scalar C Fallback */
   for (int w = 0; w < word; w++)
     pos += __builtin_popcountll(bm[w]);
-  pos += __builtin_popcountll(bm[word] & ((1ULL << bit) - 1));
+  pos += __builtin_popcountll(masked_word);
+#endif
 
   const int16_t *trans = (const int16_t *)(row + 2 + 32);
   return trans[pos];

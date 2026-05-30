@@ -237,57 +237,78 @@ static bool parse_request_line(const char *buf, char *method, size_t mlen,
 /* Extract JSON "text" field value — minimal zero-alloc parser */
 static bool extract_json_text(const char *json, size_t json_len,
                               const char **text_start, size_t *text_len) {
-  /*
-   * Find "text" key and extract its string value.
-   * Only handles: {"text": "value"} (with possible escapes)
-   */
   const char *p = json;
   const char *end = json + json_len;
 
-  /* Find "text" key */
-  const char *key = NULL;
-  while (p + 5 < end) {
-    if (*p == '"' && p[1] == 't' && p[2] == 'e' && p[3] == 'x' && p[4] == 't' &&
-        p[5] == '"') {
-      key = p + 6;
-      break;
-    }
+  /* We expect the JSON to start with '{' after optional whitespace */
+  while (p < end && (*p == ' ' || *p == '\t' || *p == '\r' || *p == '\n')) {
     p++;
   }
-  if (!key)
+  if (p >= end || *p != '{') {
     return false;
+  }
+  p++;
 
-  /* Skip whitespace and colon */
-  while (key < end && (*key == ' ' || *key == ':' || *key == '\t'))
-    key++;
-
-  /* Must be a string */
-  if (key >= end || *key != '"')
-    return false;
-  key++; /* skip opening quote */
-
-  /* Find end of string (handle escapes) */
-  const char *val_start = key;
-  while (key < end) {
-    if (*key == '\\') {
-      /* SECURITY: bounds check before skipping escape pair */
-      /* SECURITY FIX #7: Changed break to return false.
-       * A lone backslash at end of input caused the loop to exit and
-       * fall through to the final return false — but only by accident.
-       * The break left the parser in an undefined state. */
-      if (key + 1 >= end)
-        return false;
-      key += 2; /* skip escape sequence */
+  bool in_string = false;
+  while (p < end) {
+    if (in_string) {
+      if (*p == '\\') {
+        if (p + 1 >= end) {
+          return false;
+        }
+        p += 2;
+        continue;
+      }
+      if (*p == '"') {
+        in_string = false;
+      }
+      p++;
       continue;
     }
-    if (*key == '"') {
-      *text_start = val_start;
-      *text_len = (size_t)(key - val_start);
-      return true;
-    }
-    key++;
-  }
 
+    /* Outside string boundaries */
+    if (*p == '"') {
+      /* Check if it's the "text" key */
+      if (p + 5 < end && p[1] == 't' && p[2] == 'e' && p[3] == 'x' && p[4] == 't' && p[5] == '"') {
+        /* Verify it is actually a key, followed by ':' */
+        const char *next = p + 6;
+        while (next < end && (*next == ' ' || *next == '\t' || *next == '\r' || *next == '\n')) {
+          next++;
+        }
+        if (next < end && *next == ':') {
+          next++; /* skip ':' */
+          while (next < end && (*next == ' ' || *next == '\t' || *next == '\r' || *next == '\n')) {
+            next++;
+          }
+          if (next < end && *next == '"') {
+            next++; /* skip opening quote of the value */
+            const char *val_start = next;
+            while (next < end) {
+              if (*next == '\\') {
+                if (next + 1 >= end) {
+                  return false;
+                }
+                next += 2;
+                continue;
+              }
+              if (*next == '"') {
+                *text_start = val_start;
+                *text_len = (size_t)(next - val_start);
+                return true;
+              }
+              next++;
+            }
+            return false; /* Unclosed value string */
+          }
+        }
+      }
+      /* If not the "text" key, it's some other string; parse it as a string */
+      in_string = true;
+      p++;
+    } else {
+      p++;
+    }
+  }
   return false;
 }
 
@@ -397,24 +418,21 @@ static char *json_escape(const char *input, size_t input_len, size_t *out_len) {
 
 /* ─── HTTP response builders ──────────────────────────────── */
 
-/*
- * SECURITY: CORS origin should be restricted in production.
- * Set PLUMBR_CORS_ORIGIN env var to override the default wildcard.
- * Example: PLUMBR_CORS_ORIGIN=https://yourdomain.com
- */
-static const char *get_cors_origin(void) {
-  const char *origin = getenv("PLUMBR_CORS_ORIGIN");
-  return (origin && origin[0]) ? origin : "*";
-}
+
 
 static char g_cors_headers[512];
 static void init_cors_headers(void) {
-  snprintf(g_cors_headers, sizeof(g_cors_headers),
-           "Access-Control-Allow-Origin: %s\r\n"
-           "Access-Control-Allow-Methods: POST, GET, OPTIONS\r\n"
-           "Access-Control-Allow-Headers: Content-Type, Authorization\r\n"
-           "Access-Control-Max-Age: 86400\r\n",
-           get_cors_origin());
+  const char *origin = getenv("PLUMBR_CORS_ORIGIN");
+  if (origin && origin[0]) {
+    snprintf(g_cors_headers, sizeof(g_cors_headers),
+             "Access-Control-Allow-Origin: %s\r\n"
+             "Access-Control-Allow-Methods: POST, GET, OPTIONS\r\n"
+             "Access-Control-Allow-Headers: Content-Type, Authorization\r\n"
+             "Access-Control-Max-Age: 86400\r\n",
+             origin);
+  } else {
+    g_cors_headers[0] = '\0';
+  }
 }
 
 /* Send a complete HTTP response */

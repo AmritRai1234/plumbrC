@@ -13,6 +13,7 @@
 #define PLUMBR_WRITE_BUFFER_SIZE (64 * 1024) /* 64KB */
 #define PLUMBR_MAX_LINE_SIZE                                                   \
   (64 * 1024) /* 64KB max line (reduced for security) */
+#define PLUMBR_BATCH_SIZE 4096                /* Fit in L3 cache */
 
 /* Arena allocator */
 #define PLUMBR_ARENA_SIZE (128 * 1024 * 1024) /* 128MB main arena */

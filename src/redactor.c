@@ -174,6 +174,119 @@ static size_t verify_ac_matches(Redactor *r, const char *line, size_t len,
   return num_verified;
 }
 
+static bool quick_check_no_literal(const Pattern *pat, const char *line, size_t len) {
+  if (strcmp(pat->name, "credit_card") == 0) {
+    int run_digits = 0;
+    int run_seps = 0;
+    for (size_t i = 0; i < len; i++) {
+      char c = line[i];
+      if (c >= '0' && c <= '9') {
+        run_digits++;
+      } else if (c == '-' || c == ' ') {
+        if (run_digits > 0) {
+          run_seps++;
+        }
+      } else {
+        if (run_digits >= 16 && run_seps <= 4) {
+          return true;
+        }
+        run_digits = 0;
+        run_seps = 0;
+      }
+    }
+    if (run_digits >= 16 && run_seps <= 4) {
+      return true;
+    }
+    return false;
+  } else if (strcmp(pat->name, "ssn") == 0) {
+    int run_digits = 0;
+    int run_hyphens = 0;
+    for (size_t i = 0; i < len; i++) {
+      char c = line[i];
+      if (c >= '0' && c <= '9') {
+        run_digits++;
+      } else if (c == '-') {
+        if (run_digits > 0) {
+          run_hyphens++;
+        }
+      } else {
+        if (run_digits >= 9 && run_hyphens >= 2 && run_hyphens <= 3) {
+          return true;
+        }
+        run_digits = 0;
+        run_hyphens = 0;
+      }
+    }
+    if (run_digits >= 9 && run_hyphens >= 2 && run_hyphens <= 3) {
+      return true;
+    }
+    return false;
+  } else if (strstr(pat->name, "email") != NULL) {
+    /* Fast check: must contain '@' */
+    return (memchr(line, '@', len) != NULL);
+  } else if (strstr(pat->name, "ipv4") != NULL) {
+    /* Fast check: must contain at least 3 dots and 4 digits */
+    const char *p = memchr(line, '.', len);
+    if (!p) return false;
+    size_t rem1 = (line + len) - (p + 1);
+    p = memchr(p + 1, '.', rem1);
+    if (!p) return false;
+    size_t rem2 = (line + len) - (p + 1);
+    p = memchr(p + 1, '.', rem2);
+    if (!p) return false;
+
+    int digits = 0;
+    for (size_t i = 0; i < len; i++) {
+      char c = line[i];
+      if (c >= '0' && c <= '9') {
+        digits++;
+      }
+    }
+    return (digits >= 4);
+  }
+  return true; /* Fallback: always match other custom no-literal patterns */
+}
+
+static size_t append_no_literal_matches(Redactor *r, const char *line, size_t len,
+                                        MatchLocation *verified, size_t num_verified,
+                                        size_t max_verified) {
+  for (size_t i = 0; i < r->patterns->no_literal_count && num_verified < max_verified; i++) {
+    uint32_t pat_id = r->patterns->no_literal_ids[i];
+    const Pattern *pat = patterns_get(r->patterns, pat_id);
+    if (!pat || !pat->regex || !r->match_data[pat_id]) {
+      continue;
+    }
+
+    if (!quick_check_no_literal(pat, line, len)) {
+      continue;
+    }
+
+    pcre2_match_data *md = r->match_data[pat_id];
+    size_t offset = 0;
+    while (offset < len && num_verified < max_verified) {
+      int rc = pcre2_match(pat->regex, (PCRE2_SPTR)line, len, offset, 0, md, r->match_ctx);
+      if (rc <= 0) {
+        break;
+      }
+      PCRE2_SIZE *ovector = pcre2_get_ovector_pointer(md);
+      if (ovector[0] <= len && ovector[1] <= len && ovector[0] >= offset) {
+        verified[num_verified].start = ovector[0];
+        verified[num_verified].end = ovector[1];
+        verified[num_verified].pattern_id = pat_id;
+        num_verified++;
+        r->patterns_matched++;
+        offset = ovector[1];
+        if (ovector[0] == ovector[1]) {
+          offset++;
+        }
+      } else {
+        break;
+      }
+    }
+  }
+  return num_verified;
+}
+
 const char *redactor_process(Redactor *r, const char *line, size_t len,
                              size_t *out_len) {
   r->lines_scanned++;
@@ -194,8 +307,7 @@ const char *redactor_process(Redactor *r, const char *line, size_t len,
       }
 #endif
       r->lines_prefiltered++;
-      *out_len = len;
-      return line;
+      goto no_literal_only;
     }
   }
 
@@ -204,8 +316,7 @@ const char *redactor_process(Redactor *r, const char *line, size_t len,
   if (r->patterns->sentinel) {
     if (!ac_search_has_match(r->patterns->sentinel, line, len)) {
       r->lines_sentinel_filtered++;
-      *out_len = len;
-      return line;
+      goto no_literal_only;
     }
   }
 #endif
@@ -222,6 +333,7 @@ const char *redactor_process(Redactor *r, const char *line, size_t len,
       size_t num_verified = verify_ac_matches(
           r, line, len, hot_matches, num_hot, verified, MAX_MATCHES_PER_LINE);
       if (num_verified > 0) {
+        num_verified = append_no_literal_matches(r, line, len, verified, num_verified, MAX_MATCHES_PER_LINE);
         return redactor_apply(r, line, len, verified, num_verified, out_len);
       }
     }
@@ -233,14 +345,21 @@ cold_ac_scan:;
     ACMatch ac_matches[MAX_MATCHES_PER_LINE];
     size_t num_ac = ac_search_all(r->patterns->automaton, line, len, ac_matches,
                                   MAX_MATCHES_PER_LINE);
-    if (num_ac == 0) {
-      *out_len = len;
-      return line;
+    if (num_ac > 0) {
+      MatchLocation verified[MAX_MATCHES_PER_LINE];
+      size_t num_verified = verify_ac_matches(r, line, len, ac_matches, num_ac,
+                                              verified, MAX_MATCHES_PER_LINE);
+      if (num_verified > 0) {
+        num_verified = append_no_literal_matches(r, line, len, verified, num_verified, MAX_MATCHES_PER_LINE);
+        return redactor_apply(r, line, len, verified, num_verified, out_len);
+      }
     }
+  }
 
+no_literal_only:;
+  if (r->patterns->no_literal_count > 0) {
     MatchLocation verified[MAX_MATCHES_PER_LINE];
-    size_t num_verified = verify_ac_matches(r, line, len, ac_matches, num_ac,
-                                            verified, MAX_MATCHES_PER_LINE);
+    size_t num_verified = append_no_literal_matches(r, line, len, verified, 0, MAX_MATCHES_PER_LINE);
     if (num_verified > 0) {
       return redactor_apply(r, line, len, verified, num_verified, out_len);
     }

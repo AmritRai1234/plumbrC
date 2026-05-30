@@ -226,11 +226,21 @@ bool patterns_build(PatternSet *ps) {
     return true;
   }
 
-  /* Add literals to AC automaton */
+  /* Add literals to AC automaton and collect no-literal patterns.
+   * Literals with length < 3 (like '.' for ipv4 or '@' for email) are ignored
+   * and treated as no-literal patterns to avoid Aho-Corasick performance degradation. */
+  ps->no_literal_count = 0;
   for (size_t i = 0; i < ps->count; i++) {
     Pattern *p = &ps->patterns[i];
-    if (p->has_literal && p->literal_len > 0) {
+    if (p->has_literal && p->literal_len >= 3) {
       ac_add_pattern(ps->automaton, p->literal, p->literal_len, p->id);
+    } else {
+      p->has_literal = false;
+      p->literal_len = 0;
+      p->literal[0] = '\0';
+      if (ps->no_literal_count < PLUMBR_MAX_PATTERNS) {
+        ps->no_literal_ids[ps->no_literal_count++] = p->id;
+      }
     }
   }
 
@@ -288,87 +298,9 @@ bool patterns_build(PatternSet *ps) {
   }
 
 #if PLUMBR_TWO_TIER_AC
-  /* Build tier-1 sentinel AC — tiny L1-resident DFA for fast line rejection.
-   * Contains the 14 most discriminative triggers that cover ~90%+ of real
-   * matches. If none of these appear in a line, the full AC can be skipped. */
-  static const struct {
-    const char *literal;
-    size_t len;
-  } sentinels[] = {
-      /* Core secrets */
-      {"password", 8},
-      {"secret", 6},
-      {"token", 5},
-      {"AKIA", 4},
-      {"ghp_", 4},
-      {"sk_live_", 8},
-      {"postgres://", 11},
-      {"mongodb://", 10},
-      {"-----BEGIN", 10},
-      {"xoxb-", 5},
-      {"eyJ", 3},
-      {"Bearer", 6},
-      {"api_key", 7},
-      {"credential", 10},
-      {"key", 3},
-      /* HIPAA */
-      {"MRN", 3},
-      {"NPI", 3},
-      {"diagnosis", 9},
-      {"patient", 7},
-      {"beneficiary", 11},
-      {"ICD", 3},
-      {"glucose", 7},
-      {"A1C", 3},
-      {"blood", 5},
-      {"heart_rate", 10},
-      {"encounter", 9},
-      {"prescription", 12},
-      {"Rx", 2},
-      /* PCI-DSS */
-      {"cardholder", 10},
-      {"%B", 2},
-      {"PIN", 3},
-      {"track", 5},
-      {"card_number", 11},
-      {"cvv", 3},
-      {"merchant", 8},
-      /* GDPR */
-      {"IBAN", 4},
-      {"NINO", 4},
-      {"DNI", 3},
-      {"NIE", 3},
-      {"INSEE", 5},
-      {"Steuernummer", 13},
-      {"codice_fiscale", 14},
-      {"driving_licen", 13},
-      /* SOC2 */
-      {"audit_id", 8},
-      {"session_id", 10},
-      {"role", 4},
-      {"permission", 10},
-      {"acl", 3},
-      {"privilege", 9},
-      {"encryption_key", 14},
-      {"signing_key", 11},
-      {"master_key", 10},
-      {"mfa", 3},
-      {"totp", 4},
-      {"recovery_code", 13},
-      {"kms", 3},
-  };
-  static const size_t NUM_SENTINELS = sizeof(sentinels) / sizeof(sentinels[0]);
-
-  ps->sentinel = ac_create(ps->arena);
-  if (ps->sentinel) {
-    for (size_t i = 0; i < NUM_SENTINELS; i++) {
-      ac_add_pattern(ps->sentinel, sentinels[i].literal, sentinels[i].len,
-                     (uint32_t)i);
-    }
-    if (!ac_build(ps->sentinel)) {
-      ps->sentinel = NULL; /* Non-fatal: fall back to full AC only */
-    }
-  }
+  /* Point sentinel to automaton to cover all loaded pattern literals dynamically
+   * without false negatives and without allocating duplicate automaton memory. */
+  ps->sentinel = ps->automaton;
 #endif /* PLUMBR_TWO_TIER_AC */
 
   ps->built = true;

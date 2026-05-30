@@ -168,6 +168,11 @@ RESP=$(curl -s -X POST $BASE/api/redact/batch -H "Content-Type: application/json
   -d '{"texts": "not-an-array"}')
 check "Batch non-array returns error" '"error"' "$RESP"
 
+# JSON key prefix collision handling
+RESP=$(curl -s -X POST $BASE/api/redact -H "Content-Type: application/json" \
+  -d '{"logger": "text", "text": "secret123 password=hunter2"}')
+check "JSON key prefix collision handled" 'REDACTED:password' "$RESP"
+
 echo ""
 
 # ─── 6. CORS ─────────────────────────────────────

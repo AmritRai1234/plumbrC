@@ -69,6 +69,7 @@ struct PlumbrContext {
   Redactor *redactor;
   IOContext io;
   PlumbrConfig config;
+  ParallelCtx *pctx; /* Cached parallel context */
 
   /* Timing */
   struct timespec start_time;
@@ -198,59 +199,33 @@ static int process_single_threaded(PlumbrContext *ctx) {
 }
 
 /* Batch size for parallel processing - fits in L3 cache */
-#define BATCH_SIZE 4096
+#define BATCH_SIZE PLUMBR_BATCH_SIZE
 
 /*
  * New parallel processing using pthread barriers
  * More reliable than the old thread pool implementation
  */
 static int process_parallel_new(PlumbrContext *ctx, int num_threads) {
-  ParallelCtx *pctx =
-      parallel_create(num_threads, ctx->patterns, PLUMBR_MAX_LINE_SIZE);
+  ParallelCtx *pctx = ctx->pctx;
   if (!pctx) {
-    fprintf(stderr, "Warning: Failed to create parallel context, "
-                    "using single-threaded\n");
-    return process_single_threaded(ctx);
-  }
-
-  /* Allocate batch storage */
-  const char **lines = malloc(BATCH_SIZE * sizeof(char *));
-  size_t *lengths = malloc(BATCH_SIZE * sizeof(size_t));
-  char **outputs = malloc(BATCH_SIZE * sizeof(char *));
-  size_t *out_lengths = malloc(BATCH_SIZE * sizeof(size_t));
-  char **line_copies = malloc(BATCH_SIZE * sizeof(char *));
-
-  if (!lines || !lengths || !outputs || !out_lengths || !line_copies) {
-    free(lines);
-    free(lengths);
-    free(outputs);
-    free(out_lengths);
-    free(line_copies);
-    parallel_destroy(pctx);
-    return process_single_threaded(ctx);
-  }
-
-  /* Allocate output buffers and line copies */
-  for (size_t i = 0; i < BATCH_SIZE; i++) {
-    outputs[i] = malloc(PLUMBR_MAX_LINE_SIZE);
-    line_copies[i] = malloc(PLUMBR_MAX_LINE_SIZE);
-    if (!outputs[i] || !line_copies[i]) {
-      /* SECURITY FIX #8: Changed <= to < to avoid freeing the failed
-       * allocation index. When outputs[i] or line_copies[i] fails,
-       * freeing index i double-frees or frees uninitialized memory. */
-      for (size_t j = 0; j < i; j++) {
-        free(outputs[j]);
-        free(line_copies[j]);
-      }
-      free(lines);
-      free(lengths);
-      free(outputs);
-      free(out_lengths);
-      free(line_copies);
-      parallel_destroy(pctx);
+    ctx->pctx = parallel_create(num_threads, ctx->patterns, PLUMBR_MAX_LINE_SIZE);
+    pctx = ctx->pctx;
+    if (!pctx) {
+      fprintf(stderr, "Warning: Failed to create parallel context, "
+                      "using single-threaded\n");
       return process_single_threaded(ctx);
     }
   }
+
+  parallel_reset_stats(pctx);
+
+  /* Retrieve persistent batch storage from the parallel context */
+  const char **lines = NULL;
+  size_t *lengths = NULL;
+  char **outputs = NULL;
+  size_t *out_lengths = NULL;
+  char **line_copies = NULL;
+  parallel_get_batch_buffers(pctx, &lines, &lengths, &outputs, &out_lengths, &line_copies);
 
   size_t batch_count = 0;
   size_t line_len;
@@ -301,17 +276,6 @@ cleanup:
   /* Aggregate parallel stats into the main redactor for reporting */
   ctx->redactor->lines_modified += parallel_lines_modified(pctx);
   ctx->redactor->patterns_matched += parallel_patterns_matched(pctx);
-
-  for (size_t i = 0; i < BATCH_SIZE; i++) {
-    free(outputs[i]);
-    free(line_copies[i]);
-  }
-  free(lines);
-  free(lengths);
-  free(outputs);
-  free(out_lengths);
-  free(line_copies);
-  parallel_destroy(pctx);
 
   return result;
 }
@@ -427,6 +391,9 @@ void plumbr_destroy(PlumbrContext *ctx) {
   if (!ctx)
     return;
 
+  if (ctx->pctx) {
+    parallel_destroy(ctx->pctx);
+  }
   redactor_destroy(ctx->redactor);
   patterns_destroy(ctx->patterns);
   arena_destroy(&ctx->arena);

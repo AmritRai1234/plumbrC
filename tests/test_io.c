@@ -243,6 +243,55 @@ TEST(bytes_tracking) {
   close(write_fds[1]);
 }
 
+TEST(long_line_split) {
+  /* Create an input stream with a line exceeding PLUMBR_MAX_LINE_SIZE (64KB) */
+  size_t huge_len = 64 * 1024 + 1000;
+  char *huge_line = malloc(huge_len + 2);
+  assert(huge_line != NULL);
+  memset(huge_line, 'A', huge_len);
+  huge_line[huge_len] = '\n';
+  huge_line[huge_len + 1] = '\0';
+
+  FILE *tmp = tmpfile();
+  assert(tmp != NULL);
+  size_t written = fwrite(huge_line, 1, huge_len + 1, tmp);
+  assert(written == huge_len + 1);
+  fflush(tmp);
+  rewind(tmp);
+
+  int read_fd = fileno(tmp);
+  int write_fds[2];
+  assert(pipe(write_fds) == 0);
+
+  IOContext ctx;
+  io_init(&ctx, read_fd, write_fds[1]);
+
+  /* Reading the first chunk: should be PLUMBR_MAX_LINE_SIZE - 1 bytes */
+  size_t line_len1 = 0;
+  const char *line1 = io_read_line(&ctx, &line_len1);
+  ASSERT_TRUE(line1 != NULL);
+  ASSERT_EQ(64 * 1024 - 1, line_len1);
+
+  /* Reading the second chunk: should contain the remainder (1001 bytes) */
+  size_t line_len2 = 0;
+  const char *line2 = io_read_line(&ctx, &line_len2);
+  ASSERT_TRUE(line2 != NULL);
+  ASSERT_EQ(1001, line_len2);
+
+  /* Next read should be EOF */
+  size_t line_len3 = 0;
+  const char *line3 = io_read_line(&ctx, &line_len3);
+  ASSERT_TRUE(line3 == NULL);
+
+  /* Total lines processed: 2 */
+  ASSERT_EQ(2, io_lines_processed(&ctx));
+
+  free(huge_line);
+  fclose(tmp);
+  close(write_fds[0]);
+  close(write_fds[1]);
+}
+
 int main(void) {
   printf("Running I/O tests...\n");
 
@@ -253,6 +302,7 @@ int main(void) {
   RUN_TEST(write_and_flush);
   RUN_TEST(empty_lines);
   RUN_TEST(bytes_tracking);
+  RUN_TEST(long_line_split);
 
   printf("\nAll tests passed!\n");
   return 0;

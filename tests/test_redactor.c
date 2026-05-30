@@ -66,6 +66,9 @@ static void setup(void) {
   patterns_add(test_patterns, "email", "@",
                "[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}",
                "[REDACTED:email]");
+  patterns_add(test_patterns, "credit_card", NULL,
+               "\\b[0-9]{4}[- ]?[0-9]{4}[- ]?[0-9]{4}[- ]?[0-9]{4}\\b",
+               "[REDACTED:cc]");
 
   assert(patterns_build(test_patterns));
 
@@ -191,6 +194,15 @@ TEST(no_literal_match) {
   ASSERT_EQ(strlen(input), out_len);
 }
 
+TEST(no_literal_redaction) {
+  const char *input = "Card: 1234-5678-1234-5678 is my card number";
+  size_t out_len;
+  const char *output =
+      redactor_process(test_redactor, input, strlen(input), &out_len);
+
+  ASSERT_STR_EQ("Card: [REDACTED:cc] is my card number", output);
+}
+
 int main(void) {
   printf("Running redactor tests...\n");
 
@@ -206,6 +218,7 @@ int main(void) {
   RUN_TEST(overlapping_matches);
   RUN_TEST(long_line);
   RUN_TEST(no_literal_match);
+  RUN_TEST(no_literal_redaction);
 
   teardown();
 

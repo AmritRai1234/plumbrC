@@ -39,6 +39,7 @@ typedef struct {
   bool has_avx;
   bool has_avx2;
   bool has_avx512;
+  bool has_neon;
 
   /* String operations */
   bool has_popcnt;

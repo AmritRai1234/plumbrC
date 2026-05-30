@@ -77,11 +77,16 @@ const char *io_read_line(IOContext *ctx, size_t *out_len) {
         /* SECURITY: Explicit bounds check to prevent overflow */
         size_t max_chunk = PLUMBR_MAX_LINE_SIZE - ctx->line_carry_len - 1;
         if (chunk_len > max_chunk) {
-          /* Line too long, skip to newline */
-          ctx->read_pos = (nl - ctx->read_buf) + 1;
-          ctx->line_carry_len = 0;
+          /* Line too long, truncate and return what fits */
+          if (max_chunk > 0) {
+            memcpy(ctx->line_carry + ctx->line_carry_len, start, max_chunk);
+            ctx->read_pos += max_chunk;
+          }
+          ctx->line_carry[PLUMBR_MAX_LINE_SIZE - 1] = '\0';
+          *out_len = PLUMBR_MAX_LINE_SIZE - 1;
           ctx->lines_processed++;
-          return io_read_line(ctx, out_len);
+          ctx->line_carry_len = 0;
+          return ctx->line_carry;
         }
 
         size_t total_len = ctx->line_carry_len + chunk_len;
@@ -105,13 +110,16 @@ const char *io_read_line(IOContext *ctx, size_t *out_len) {
       size_t safe_avail = avail;
       size_t remaining_space = PLUMBR_MAX_LINE_SIZE - ctx->line_carry_len - 1;
       if (safe_avail > remaining_space) {
-        /* Line too long, truncate to max size */
-        safe_avail = remaining_space;
-        if (safe_avail == 0) {
-          ctx->line_carry_len = 0;
-          ctx->read_pos = ctx->read_len;
-          continue;
+        /* Line too long, copy as much as fits and return it */
+        if (remaining_space > 0) {
+          memcpy(ctx->line_carry + ctx->line_carry_len, start, remaining_space);
+          ctx->read_pos += remaining_space;
         }
+        ctx->line_carry[PLUMBR_MAX_LINE_SIZE - 1] = '\0';
+        *out_len = PLUMBR_MAX_LINE_SIZE - 1;
+        ctx->lines_processed++;
+        ctx->line_carry_len = 0;
+        return ctx->line_carry;
       }
 
       memcpy(ctx->line_carry + ctx->line_carry_len, start, safe_avail);
@@ -152,14 +160,21 @@ const char *io_read_line(IOContext *ctx, size_t *out_len) {
     /* No newline - need to carry over */
     if (avail > 0) {
       if (PLUMBR_UNLIKELY(avail >= PLUMBR_MAX_LINE_SIZE)) {
-        /* Line too long, skip */
-        ctx->read_pos = ctx->read_len;
-        continue;
+        /* Line too long, copy as much as fits and return it */
+        size_t size_to_copy = PLUMBR_MAX_LINE_SIZE - 1;
+        memcpy(ctx->line_carry, start, size_to_copy);
+        ctx->line_carry[size_to_copy] = '\0';
+        ctx->read_pos += size_to_copy;
+        *out_len = size_to_copy;
+        ctx->lines_processed++;
+        ctx->line_carry_len = 0;
+        return ctx->line_carry;
       }
 
       memcpy(ctx->line_carry, start, avail);
       ctx->line_carry_len = avail;
       ctx->read_pos = ctx->read_len;
+      return io_read_line(ctx, out_len);
     }
   }
 
