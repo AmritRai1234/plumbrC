@@ -196,7 +196,20 @@ PlumbrContext *plumbr_create(const PlumbrConfig *config) {
     ACAutomaton *ac = ctx->patterns->automaton;
     if (ac && ac_export_flat_dfa(ac, &flat_dfa, &meta_final, &meta_pat,
                                  &meta_depth, &num_states)) {
-      if (!gpu_upload_dfa(ctx->gpu, flat_dfa, meta_final, meta_pat,
+      /*
+       * GPU is only beneficial when the DFA is large enough that
+       * CPU cache pressure matters. With small DFAs (<200 states),
+       * the CPU L1 cache holds the entire DFA and is faster than
+       * GPU kernel dispatch overhead.
+       *
+       * Threshold: ~200 states ≈ 50+ patterns (empirically determined).
+       */
+      if (num_states < 200) {
+        fprintf(stderr, "PlumbrC GPU: DFA too small (%zu states), "
+                "using CPU (faster for <50 patterns)\n", num_states);
+        gpu_destroy(ctx->gpu);
+        ctx->gpu = NULL;
+      } else if (!gpu_upload_dfa(ctx->gpu, flat_dfa, meta_final, meta_pat,
                           meta_depth, num_states)) {
         fprintf(stderr, "PlumbrC GPU: DFA upload failed, using CPU\n");
         gpu_destroy(ctx->gpu);
@@ -237,6 +250,109 @@ static int process_single_threaded(PlumbrContext *ctx) {
 
 /* Batch size for parallel processing - fits in L3 cache */
 #define BATCH_SIZE PLUMBR_BATCH_SIZE
+
+/*
+ * Process a single batch — either GPU-accelerated or CPU-only.
+ * Returns 0 on success, 1 on write error.
+ */
+static int process_batch(PlumbrContext *ctx, ParallelCtx *pctx,
+                         const char **lines, size_t *lengths,
+                         char **outputs, size_t *out_lengths,
+                         size_t batch_count) {
+#ifdef PLUMBR_GPU
+  /*
+   * GPU-accelerated path: use GPU AC DFA scan to pre-filter lines.
+   * Lines with 0 matches skip redactor entirely (pass through unchanged).
+   * Lines with matches go through CPU parallel_process for PCRE2 verification.
+   */
+  if (ctx->gpu) {
+    GpuLineResult *gpu_results = malloc(batch_count * sizeof(GpuLineResult));
+    if (gpu_results && gpu_scan_batch(ctx->gpu, lines, lengths,
+                                       batch_count, gpu_results)) {
+      /* Build list of lines that need CPU processing */
+      size_t *match_indices = malloc(batch_count * sizeof(size_t));
+      size_t num_matches = 0;
+
+      if (match_indices) {
+        for (size_t i = 0; i < batch_count; i++) {
+          if (gpu_results[i].num_matches > 0) {
+            match_indices[num_matches++] = i;
+          } else {
+            /* No matches — pass through unchanged */
+            memcpy(outputs[i], lines[i], lengths[i]);
+            outputs[i][lengths[i]] = '\0';
+            out_lengths[i] = lengths[i];
+          }
+        }
+
+        if (num_matches > 0) {
+          /* Build compact arrays for only the matching lines */
+          const char **match_lines = malloc(num_matches * sizeof(char *));
+          size_t *match_lengths = malloc(num_matches * sizeof(size_t));
+          char **match_outputs = malloc(num_matches * sizeof(char *));
+          size_t *match_out_lengths = malloc(num_matches * sizeof(size_t));
+
+          if (match_lines && match_lengths && match_outputs && match_out_lengths) {
+            for (size_t j = 0; j < num_matches; j++) {
+              size_t idx = match_indices[j];
+              match_lines[j] = lines[idx];
+              match_lengths[j] = lengths[idx];
+              match_outputs[j] = outputs[idx];
+              match_out_lengths[j] = out_lengths[idx];
+            }
+
+            /* Process only matched lines through CPU */
+            parallel_process(pctx, match_lines, match_lengths,
+                           match_outputs, match_out_lengths, num_matches);
+
+            /* Copy results back to original positions */
+            for (size_t j = 0; j < num_matches; j++) {
+              out_lengths[match_indices[j]] = match_out_lengths[j];
+            }
+          } else {
+            /* Malloc failed — fall through to full CPU processing */
+            parallel_process(pctx, lines, lengths, outputs, out_lengths,
+                           batch_count);
+          }
+
+          free(match_lines);
+          free(match_lengths);
+          free(match_outputs);
+          free(match_out_lengths);
+        }
+        /* else: num_matches == 0 means all lines are clean — all already
+         * copied to output, nothing to do */
+
+        free(match_indices);
+        free(gpu_results);
+
+        /* Write outputs */
+        for (size_t i = 0; i < batch_count; i++) {
+          if (!io_write_line(&ctx->io, outputs[i], out_lengths[i])) {
+            return 1;
+          }
+        }
+        return 0;
+      }
+
+      free(gpu_results);
+    } else {
+      free(gpu_results);
+    }
+    /* GPU scan failed — fall through to CPU path */
+  }
+#endif /* PLUMBR_GPU */
+
+  /* CPU-only path */
+  parallel_process(pctx, lines, lengths, outputs, out_lengths, batch_count);
+
+  for (size_t i = 0; i < batch_count; i++) {
+    if (!io_write_line(&ctx->io, outputs[i], out_lengths[i])) {
+      return 1;
+    }
+  }
+  return 0;
+}
 
 /*
  * Parallel processing using pthread barriers with persistent batch storage.
@@ -282,27 +398,17 @@ static int process_parallel_new(PlumbrContext *ctx, int num_threads) {
     batch_count++;
 
     if (batch_count >= BATCH_SIZE) {
-      parallel_process(pctx, lines, lengths, outputs, out_lengths, batch_count);
-
-      for (size_t i = 0; i < batch_count; i++) {
-        if (!io_write_line(&ctx->io, outputs[i], out_lengths[i])) {
-          result = 1;
-          goto cleanup;
-        }
-      }
+      result = process_batch(ctx, pctx, lines, lengths, outputs,
+                            out_lengths, batch_count);
+      if (result != 0) goto cleanup;
       batch_count = 0;
     }
   }
 
   /* Process remaining */
   if (batch_count > 0) {
-    parallel_process(pctx, lines, lengths, outputs, out_lengths, batch_count);
-    for (size_t i = 0; i < batch_count; i++) {
-      if (!io_write_line(&ctx->io, outputs[i], out_lengths[i])) {
-        result = 1;
-        goto cleanup;
-      }
-    }
+    result = process_batch(ctx, pctx, lines, lengths, outputs,
+                          out_lengths, batch_count);
   }
 
 cleanup:
