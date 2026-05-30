@@ -202,8 +202,7 @@ static int process_single_threaded(PlumbrContext *ctx) {
 #define BATCH_SIZE PLUMBR_BATCH_SIZE
 
 /*
- * New parallel processing using pthread barriers
- * More reliable than the old thread pool implementation
+ * Parallel processing using pthread barriers with persistent batch storage.
  */
 static int process_parallel_new(PlumbrContext *ctx, int num_threads) {
   ParallelCtx *pctx = ctx->pctx;
@@ -233,31 +232,21 @@ static int process_parallel_new(PlumbrContext *ctx, int num_threads) {
   int result = 0;
 
   while ((line = io_read_line(&ctx->io, &line_len)) != NULL) {
-    /* Zero-copy fast path: pass I/O buffer pointer directly to workers.
-     * io_read_line returns a pointer into the read buffer for complete lines
-     * (fast path) or into the carry buffer for split lines. Either way the
-     * pointer is stable until the next io_read_line call. Since we batch
-     * lines and process the whole batch before reading more, all pointers
-     * in the batch remain valid during parallel_process. */
     if (line_len < PLUMBR_MAX_LINE_SIZE) {
-      /* Copy line data — I/O buffer will be reused on next read */
       memcpy(line_copies[batch_count], line, line_len);
       line_copies[batch_count][line_len] = '\0';
-      lines[batch_count] = line_copies[batch_count];
     } else {
       memcpy(line_copies[batch_count], line, PLUMBR_MAX_LINE_SIZE - 1);
       line_copies[batch_count][PLUMBR_MAX_LINE_SIZE - 1] = '\0';
       line_len = PLUMBR_MAX_LINE_SIZE - 1;
-      lines[batch_count] = line_copies[batch_count];
     }
+    lines[batch_count] = line_copies[batch_count];
     lengths[batch_count] = line_len;
     batch_count++;
 
     if (batch_count >= BATCH_SIZE) {
-      /* Process batch */
       parallel_process(pctx, lines, lengths, outputs, out_lengths, batch_count);
 
-      /* Write results in order */
       for (size_t i = 0; i < batch_count; i++) {
         if (!io_write_line(&ctx->io, outputs[i], out_lengths[i])) {
           result = 1;
@@ -267,7 +256,6 @@ static int process_parallel_new(PlumbrContext *ctx, int num_threads) {
       batch_count = 0;
     }
   }
-
 
   /* Process remaining */
   if (batch_count > 0) {
