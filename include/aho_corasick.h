@@ -65,4 +65,24 @@ bool ac_search_has_match(const ACAutomaton *ac, const char *text, size_t len);
  * Non-zero values indicate valid first-byte transitions */
 const int16_t *ac_get_root_transitions(const ACAutomaton *ac);
 
+/* ─── GPU Export API ─────────────────────────────────────────── */
+
+/* Get the number of DFA states */
+size_t ac_get_num_states(const ACAutomaton *ac);
+
+/* Export flat DFA table and metadata for GPU upload.
+ * All output arrays are malloc'd — caller must free them.
+ * Returns false if the automaton hasn't been built yet.
+ *
+ * out_dfa:        flat DFA table [num_states * 256] (int16_t)
+ * out_final:      per-state is_final [num_states] (bool)
+ * out_pat_id:     per-state pattern_id [num_states] (uint32_t)
+ * out_depth:      per-state match length [num_states] (uint16_t)
+ * out_num_states: total number of states
+ */
+bool ac_export_flat_dfa(const ACAutomaton *ac, int16_t **out_dfa,
+                        bool **out_final, uint32_t **out_pat_id,
+                        uint16_t **out_depth, size_t *out_num_states);
+
 #endif /* PLUMBR_AHO_CORASICK_H */
+

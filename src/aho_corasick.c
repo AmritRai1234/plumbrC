@@ -11,6 +11,7 @@
 #include "config.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 /* State representation */
@@ -777,4 +778,56 @@ const int16_t *ac_get_root_transitions(const ACAutomaton *ac) {
     return NULL;
   return &ac->dfa[0]; /* State 0 (root) row */
 #endif
+}
+
+/* ─── GPU Export API ─────────────────────────────────────────── */
+
+size_t ac_get_num_states(const ACAutomaton *ac) {
+  return ac ? ac->num_states : 0;
+}
+
+bool ac_export_flat_dfa(const ACAutomaton *ac, int16_t **out_dfa,
+                        bool **out_final, uint32_t **out_pat_id,
+                        uint16_t **out_depth, size_t *out_num_states) {
+  if (!ac || !ac->built || !out_dfa || !out_final || !out_pat_id ||
+      !out_depth || !out_num_states)
+    return false;
+
+  size_t ns = ac->num_states;
+  *out_num_states = ns;
+
+  /* Export flat DFA table */
+  if (ac->dfa) {
+    /* Flat DFA already exists — just copy it */
+    *out_dfa = malloc(ns * AC_ALPHABET_SIZE * sizeof(int16_t));
+    if (!*out_dfa) return false;
+    memcpy(*out_dfa, ac->dfa, ns * AC_ALPHABET_SIZE * sizeof(int16_t));
+  } else {
+    /* Compressed DFA — rebuild flat from build-time states */
+    *out_dfa = malloc(ns * AC_ALPHABET_SIZE * sizeof(int16_t));
+    if (!*out_dfa) return false;
+    for (size_t s = 0; s < ns; s++) {
+      int16_t *row = &(*out_dfa)[s * AC_ALPHABET_SIZE];
+      for (int c = 0; c < AC_ALPHABET_SIZE; c++) {
+        row[c] = (int16_t)ac->states[s].goto_table[c];
+      }
+    }
+  }
+
+  /* Export metadata arrays */
+  *out_final = malloc(ns * sizeof(bool));
+  *out_pat_id = malloc(ns * sizeof(uint32_t));
+  *out_depth = malloc(ns * sizeof(uint16_t));
+  if (!*out_final || !*out_pat_id || !*out_depth) {
+    free(*out_dfa); free(*out_final); free(*out_pat_id); free(*out_depth);
+    return false;
+  }
+
+  for (size_t s = 0; s < ns; s++) {
+    (*out_final)[s] = ac->meta[s].is_final;
+    (*out_pat_id)[s] = ac->meta[s].pattern_id;
+    (*out_depth)[s] = ac->meta[s].depth;
+  }
+
+  return true;
 }

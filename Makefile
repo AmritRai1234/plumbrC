@@ -23,6 +23,10 @@ LIB_OBJS = $(patsubst $(SRC_DIR)/%.c,$(OBJ_DIR)/%.o,$(LIB_SRCS))
 AMD_OBJS = $(patsubst $(SRC_DIR)/amd/%.c,$(OBJ_DIR)/amd_%.o,$(AMD_SRCS))
 ALL_LIB_OBJS = $(LIB_OBJS) $(AMD_OBJS)
 
+# GPU support (optional — build with 'make gpu' or 'GPU=1 make')
+GPU_SRCS = $(wildcard $(SRC_DIR)/gpu/*.c)
+GPU_OBJS = $(patsubst $(SRC_DIR)/gpu/%.c,$(OBJ_DIR)/gpu_%.o,$(GPU_SRCS))
+
 # Compiler flags
 CFLAGS = -std=c11 -I$(INC_DIR) -I$(SRC_DIR)/amd -D_GNU_SOURCE
 LDFLAGS = -lpcre2-8 -lpthread
@@ -46,7 +50,7 @@ DEBUG_FLAGS = -g -O0 -DDEBUG
 SANITIZE_FLAGS = -fsanitize=address,undefined -fno-omit-frame-pointer
 
 # Default: build static library
-.PHONY: all lib shared libs debug sanitize clean test test-unit benchmark-full benchmark-json check-deps format analyze info help
+.PHONY: all lib shared libs debug sanitize clean test test-unit benchmark-full benchmark-json check-deps format analyze info help gpu gpu-test gpu-benchmark
 
 all: lib
 
@@ -85,6 +89,14 @@ sanitize: CFLAGS += $(WARNINGS) $(DEBUG_FLAGS) $(SANITIZE_FLAGS)
 sanitize: LDFLAGS += $(SANITIZE_FLAGS)
 sanitize: $(ALL_LIB_OBJS)
 
+# GPU-accelerated build (requires OpenCL)
+gpu: CFLAGS += $(WARNINGS) $(OPT_FLAGS) -DNDEBUG -DPLUMBR_GPU
+gpu: LDFLAGS += -lOpenCL
+gpu: $(ALL_LIB_OBJS) $(GPU_OBJS)
+	@mkdir -p $(LIB_DIR)
+	$(AR) rcs $(LIB_DIR)/$(LIBRARY) $(ALL_LIB_OBJS) $(GPU_OBJS)
+	@echo "Built (GPU): $(LIB_DIR)/$(LIBRARY)"
+
 # ─── Compile Rules ────────────────────────────────────────────
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c | $(OBJ_DIR)
@@ -92,6 +104,9 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c | $(OBJ_DIR)
 
 $(OBJ_DIR)/amd_%.o: $(SRC_DIR)/amd/%.c | $(OBJ_DIR)
 	$(CC) $(CFLAGS) -mavx2 -c $< -o $@
+
+$(OBJ_DIR)/gpu_%.o: $(SRC_DIR)/gpu/%.c | $(OBJ_DIR)
+	$(CC) $(CFLAGS) -c $< -o $@
 
 $(PIC_OBJ_DIR)/%.o: $(SRC_DIR)/%.c | $(PIC_OBJ_DIR)
 	$(CC) $(CFLAGS) -fPIC -c $< -o $@
@@ -140,6 +155,19 @@ benchmark-full: $(BIN_DIR)/benchmark_suite
 
 benchmark-json: $(BIN_DIR)/benchmark_suite
 	@$(BIN_DIR)/benchmark_suite --json
+
+# ─── GPU Tests & Benchmarks ───────────────────────────────────
+
+gpu-test: gpu
+	@echo "Running GPU-enabled unit tests..."
+	@mkdir -p $(BIN_DIR)
+	$(CC) -std=c11 -I$(INC_DIR) -I$(SRC_DIR)/amd -D_GNU_SOURCE -DPLUMBR_GPU -g -O0 tests/test_libplumbr.c $(ALL_LIB_OBJS) $(GPU_OBJS) -o $(BIN_DIR)/test_libplumbr_gpu -lpcre2-8 -lpthread -lOpenCL
+	$(BIN_DIR)/test_libplumbr_gpu
+
+gpu-benchmark: gpu
+	@mkdir -p $(BIN_DIR)
+	$(CC) -std=c11 -I$(INC_DIR) -I$(SRC_DIR)/amd -D_GNU_SOURCE -DPLUMBR_GPU $(OPT_FLAGS) tests/benchmark.c $(ALL_LIB_OBJS) $(GPU_OBJS) -o $(BIN_DIR)/benchmark_suite_gpu -lpcre2-8 -lpthread -lOpenCL
+	@$(BIN_DIR)/benchmark_suite_gpu
 
 # ─── Fuzz Targets (requires clang with libFuzzer) ─────────────
 

@@ -8,6 +8,7 @@
   <img src="https://img.shields.io/badge/language-C11-blue.svg" alt="Language">
   <img src="https://img.shields.io/badge/performance-9.2M%20lines%2Fsec-brightgreen.svg" alt="Performance">
   <img src="https://img.shields.io/badge/throughput-860%20MB%2Fs-blue.svg" alt="Throughput">
+  <img src="https://img.shields.io/badge/GPU-OpenCL-yellow.svg" alt="GPU">
   <img src="https://img.shields.io/badge/memory-0%20allocs%20hot%20path-success.svg" alt="Memory">
   <img src="https://img.shields.io/badge/license-Source%20Available-orange.svg" alt="License">
 </p>
@@ -24,6 +25,10 @@ sudo apt install build-essential libpcre2-dev
 
 # Build static library (libplumbr.a)
 make
+
+# Build with GPU acceleration (requires OpenCL)
+sudo apt install ocl-icd-opencl-dev opencl-headers
+make gpu
 
 # Build shared library (libplumbr.so)
 make shared
@@ -142,13 +147,47 @@ Benchmarked on AMD Zen 3 (Ryzen 5000, 8C/16T). Results may vary by ±5% between 
 make            # Static library (libplumbr.a)
 make shared     # Shared library (libplumbr.so)
 make libs       # Both static and shared
+make gpu        # Build with OpenCL GPU acceleration
 make test       # Unit tests (45 tests across 5 suites)
+make gpu-test   # Unit tests with GPU enabled
 make sanitize   # Build with ASan + UBSan
-make benchmark-full  # Performance benchmarks
+make benchmark-full   # Performance benchmarks (CPU)
+make gpu-benchmark    # Performance benchmarks (GPU)
 make fuzz       # Build libFuzzer harnesses
 make install    # Install to /usr/local
 make clean      # Remove build artifacts
 ```
+
+## GPU Acceleration
+
+Optional OpenCL GPU acceleration for Aho-Corasick DFA scanning. Works with **AMD, NVIDIA, and Intel GPUs** — any device that supports OpenCL 1.2+.
+
+```bash
+# Install OpenCL development headers
+sudo apt install ocl-icd-opencl-dev opencl-headers
+
+# GPU driver (pick one):
+sudo apt install mesa-opencl-icd      # AMD (open-source)
+sudo apt install nvidia-opencl-icd     # NVIDIA
+sudo apt install intel-opencl-icd      # Intel
+
+# Build with GPU support
+make gpu
+
+# Benchmark GPU vs CPU
+make gpu-benchmark
+
+# Disable GPU at runtime (force CPU-only)
+PLUMBR_NO_GPU=1 ./your_app
+```
+
+| Feature | Detail |
+|---|---|
+| Kernel | AC DFA scan — one GPU thread per line |
+| Fallback | Automatic CPU fallback if no GPU detected |
+| Zero-copy | Uses `CL_MEM_ALLOC_HOST_PTR` for APU shared memory |
+| PCRE2 | Stays on CPU (regex backtracking is CPU-suited) |
+| Build flag | `-DPLUMBR_GPU` — zero overhead when disabled |
 
 ## License
 

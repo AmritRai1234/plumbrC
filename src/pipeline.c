@@ -5,6 +5,7 @@
 
 #include "aho_corasick.h"
 #include "arena.h"
+#include "gpu.h"
 #include "hwdetect.h"
 #include "io.h"
 #include "parallel.h"
@@ -70,6 +71,10 @@ struct PlumbrContext {
   IOContext io;
   PlumbrConfig config;
   ParallelCtx *pctx; /* Cached parallel context */
+
+#ifdef PLUMBR_GPU
+  GpuContext *gpu;   /* GPU accelerator (NULL if unavailable) */
+#endif
 
   /* Timing */
   struct timespec start_time;
@@ -176,6 +181,38 @@ PlumbrContext *plumbr_create(const PlumbrConfig *config) {
     free(ctx);
     return NULL;
   }
+
+#ifdef PLUMBR_GPU
+  /* Initialize GPU acceleration (optional — fails silently) */
+  ctx->gpu = gpu_init();
+  if (ctx->gpu) {
+    /* Export flat DFA and upload to GPU */
+    int16_t *flat_dfa = NULL;
+    bool *meta_final = NULL;
+    uint32_t *meta_pat = NULL;
+    uint16_t *meta_depth = NULL;
+    size_t num_states = 0;
+
+    ACAutomaton *ac = ctx->patterns->automaton;
+    if (ac && ac_export_flat_dfa(ac, &flat_dfa, &meta_final, &meta_pat,
+                                 &meta_depth, &num_states)) {
+      if (!gpu_upload_dfa(ctx->gpu, flat_dfa, meta_final, meta_pat,
+                          meta_depth, num_states)) {
+        fprintf(stderr, "PlumbrC GPU: DFA upload failed, using CPU\n");
+        gpu_destroy(ctx->gpu);
+        ctx->gpu = NULL;
+      }
+      free(flat_dfa);
+      free(meta_final);
+      free(meta_pat);
+      free(meta_depth);
+    } else {
+      fprintf(stderr, "PlumbrC GPU: DFA export failed, using CPU\n");
+      gpu_destroy(ctx->gpu);
+      ctx->gpu = NULL;
+    }
+  }
+#endif
 
   return ctx;
 }
@@ -387,6 +424,11 @@ void plumbr_destroy(PlumbrContext *ctx) {
   if (!ctx)
     return;
 
+#ifdef PLUMBR_GPU
+  if (ctx->gpu) {
+    gpu_destroy(ctx->gpu);
+  }
+#endif
   if (ctx->pctx) {
     parallel_destroy(ctx->pctx);
   }
