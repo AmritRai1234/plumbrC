@@ -148,6 +148,18 @@ const char *io_read_line(IOContext *ctx, size_t *out_len) {
 
     if (nl != NULL) {
       size_t line_len = nl - start;
+
+      /* SECURITY: Enforce max line size even when the line fits in buffer */
+      if (PLUMBR_UNLIKELY(line_len >= PLUMBR_MAX_LINE_SIZE)) {
+        line_len = PLUMBR_MAX_LINE_SIZE - 1;
+        memcpy(ctx->line_carry, start, line_len);
+        ctx->line_carry[line_len] = '\0';
+        ctx->read_pos += line_len; /* Advance past truncated portion only */
+        *out_len = line_len;
+        ctx->lines_processed++;
+        return ctx->line_carry;
+      }
+
       *out_len = line_len;
       ctx->read_pos = (nl - ctx->read_buf) + 1;
       ctx->lines_processed++;
@@ -156,6 +168,7 @@ const char *io_read_line(IOContext *ctx, size_t *out_len) {
       *nl = '\0';
       return start;
     }
+
 
     /* No newline - need to carry over */
     if (avail > 0) {
@@ -212,11 +225,22 @@ bool io_write(IOContext *ctx, const char *data, size_t len) {
 }
 
 bool io_write_line(IOContext *ctx, const char *line, size_t len) {
+  /* Fast path: fuse line + newline into single memcpy when buffer has space */
+  size_t total = len + 1;
+  size_t space = PLUMBR_WRITE_BUFFER_SIZE - ctx->write_pos;
+  if (PLUMBR_LIKELY(total <= space)) {
+    memcpy(ctx->write_buf + ctx->write_pos, line, len);
+    ctx->write_buf[ctx->write_pos + len] = '\n';
+    ctx->write_pos += total;
+    return true;
+  }
+  /* Slow path: may need flush in the middle */
   if (!io_write(ctx, line, len)) {
     return false;
   }
   return io_write(ctx, "\n", 1);
 }
+
 
 bool io_flush(IOContext *ctx) {
   if (ctx->write_pos == 0) {

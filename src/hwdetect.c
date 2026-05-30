@@ -575,8 +575,8 @@ int hwdetect_autotune_threads(HardwareInfo *info) {
   const char *arch_name;
 
   if (info->cpu.is_zen3 || info->cpu.is_zen4) {
-    /* AMD Zen 3/4: SMT helps significantly, use 1.35x physical cores */
-    optimal = (physical * 27) / 20; /* 1.35x (empirically tuned) */
+    /* AMD Zen 3/4: SMT helps significantly, use 1.75x physical cores */
+    optimal = (physical * 7) / 4; /* 1.75x (empirically tuned) */
     arch_name = info->cpu.is_zen4 ? "AMD Zen 4" : "AMD Zen 3";
   } else if (info->cpu.vendor == CPU_VENDOR_AMD) {
     /* Older AMD: assume similar to Zen, use 1.25x */

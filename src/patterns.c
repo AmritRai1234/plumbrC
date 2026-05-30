@@ -93,6 +93,20 @@ bool patterns_add(PatternSet *ps, const char *name, const char *literal,
   }
 
   p->id = (uint32_t)ps->count;
+
+  /* Classify pattern type for fast hot-path dispatch (avoids strcmp per line) */
+  if (strcmp(name, "credit_card") == 0) {
+    p->type = PAT_TYPE_CREDIT_CARD;
+  } else if (strcmp(name, "ssn") == 0) {
+    p->type = PAT_TYPE_SSN;
+  } else if (strstr(name, "email") != NULL) {
+    p->type = PAT_TYPE_EMAIL;
+  } else if (strstr(name, "ipv4") != NULL) {
+    p->type = PAT_TYPE_IPV4;
+  } else {
+    p->type = PAT_TYPE_OTHER;
+  }
+
   ps->count++;
 
   return true;

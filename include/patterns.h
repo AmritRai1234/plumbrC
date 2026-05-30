@@ -17,6 +17,15 @@
 #include "arena.h"
 #include "config.h"
 
+/* Pattern type classification for fast hot-path dispatch (avoids strcmp) */
+typedef enum {
+  PAT_TYPE_OTHER = 0,      /* Default: always run PCRE2 */
+  PAT_TYPE_CREDIT_CARD,    /* Quick-check: 16+ digit run */
+  PAT_TYPE_SSN,            /* Quick-check: 9+ digits with 2-3 hyphens */
+  PAT_TYPE_EMAIL,          /* Quick-check: contains '@' */
+  PAT_TYPE_IPV4,           /* Quick-check: 3+ dots and 4+ digits */
+} PatternType;
+
 /* Single pattern definition */
 typedef struct {
   char name[PLUMBR_MAX_PATTERN_NAME];
@@ -27,8 +36,10 @@ typedef struct {
   char replacement[PLUMBR_MAX_REPLACEMENT_LEN];
   size_t replacement_len;
   uint32_t id;
+  PatternType type;     /* Fast dispatch type (set during pattern add) */
   bool has_literal; /* True if has usable literal */
 } Pattern;
+
 
 /* Pattern set with AC automaton */
 typedef struct PatternSet {

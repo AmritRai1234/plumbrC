@@ -107,6 +107,7 @@ static void *worker_func(void *arg) {
           w->lines_modified++;
         }
       } else {
+
         /* Line too long, copy as-is */
         size_t copy_len =
             len < PLUMBR_MAX_LINE_SIZE - 1 ? len : PLUMBR_MAX_LINE_SIZE - 1;
@@ -134,8 +135,8 @@ ParallelCtx *parallel_create(int num_threads, PatternSet *patterns,
     num_threads = sysconf(_SC_NPROCESSORS_ONLN);
     if (num_threads <= 0)
       num_threads = 1;
-    if (num_threads > 12)
-      num_threads = 12; /* Cap at 12 */
+    if (num_threads > 16)
+      num_threads = 16; /* Cap at 16 */
   }
 
   ParallelCtx *ctx = calloc(1, sizeof(ParallelCtx));

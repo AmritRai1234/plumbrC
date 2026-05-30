@@ -9,11 +9,11 @@
 #include <stddef.h>
 
 /* Buffer sizes (L2 cache friendly) */
-#define PLUMBR_READ_BUFFER_SIZE (64 * 1024)  /* 64KB */
-#define PLUMBR_WRITE_BUFFER_SIZE (64 * 1024) /* 64KB */
+#define PLUMBR_READ_BUFFER_SIZE (256 * 1024)  /* 256KB — fewer read() syscalls */
+#define PLUMBR_WRITE_BUFFER_SIZE (128 * 1024) /* 128KB — fewer write() syscalls */
 #define PLUMBR_MAX_LINE_SIZE                                                   \
   (64 * 1024) /* 64KB max line (reduced for security) */
-#define PLUMBR_BATCH_SIZE 4096                /* Fit in L3 cache */
+#define PLUMBR_BATCH_SIZE 8192                /* Amortize barrier sync over more lines */
 
 /* Arena allocator */
 #define PLUMBR_ARENA_SIZE (128 * 1024 * 1024) /* 128MB main arena */

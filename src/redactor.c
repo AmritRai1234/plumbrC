@@ -175,7 +175,8 @@ static size_t verify_ac_matches(Redactor *r, const char *line, size_t len,
 }
 
 static bool quick_check_no_literal(const Pattern *pat, const char *line, size_t len) {
-  if (strcmp(pat->name, "credit_card") == 0) {
+  switch (pat->type) {
+  case PAT_TYPE_CREDIT_CARD: {
     int run_digits = 0;
     int run_seps = 0;
     for (size_t i = 0; i < len; i++) {
@@ -194,11 +195,9 @@ static bool quick_check_no_literal(const Pattern *pat, const char *line, size_t 
         run_seps = 0;
       }
     }
-    if (run_digits >= 16 && run_seps <= 4) {
-      return true;
-    }
-    return false;
-  } else if (strcmp(pat->name, "ssn") == 0) {
+    return (run_digits >= 16 && run_seps <= 4);
+  }
+  case PAT_TYPE_SSN: {
     int run_digits = 0;
     int run_hyphens = 0;
     for (size_t i = 0; i < len; i++) {
@@ -217,35 +216,31 @@ static bool quick_check_no_literal(const Pattern *pat, const char *line, size_t 
         run_hyphens = 0;
       }
     }
-    if (run_digits >= 9 && run_hyphens >= 2 && run_hyphens <= 3) {
-      return true;
-    }
-    return false;
-  } else if (strstr(pat->name, "email") != NULL) {
-    /* Fast check: must contain '@' */
+    return (run_digits >= 9 && run_hyphens >= 2 && run_hyphens <= 3);
+  }
+  case PAT_TYPE_EMAIL:
     return (memchr(line, '@', len) != NULL);
-  } else if (strstr(pat->name, "ipv4") != NULL) {
-    /* Fast check: must contain at least 3 dots and 4 digits */
+  case PAT_TYPE_IPV4: {
     const char *p = memchr(line, '.', len);
     if (!p) return false;
-    size_t rem1 = (line + len) - (p + 1);
-    p = memchr(p + 1, '.', rem1);
+    size_t rem = (line + len) - (p + 1);
+    p = memchr(p + 1, '.', rem);
     if (!p) return false;
-    size_t rem2 = (line + len) - (p + 1);
-    p = memchr(p + 1, '.', rem2);
+    rem = (line + len) - (p + 1);
+    p = memchr(p + 1, '.', rem);
     if (!p) return false;
-
     int digits = 0;
     for (size_t i = 0; i < len; i++) {
-      char c = line[i];
-      if (c >= '0' && c <= '9') {
-        digits++;
-      }
+      if (line[i] >= '0' && line[i] <= '9') digits++;
     }
     return (digits >= 4);
   }
-  return true; /* Fallback: always match other custom no-literal patterns */
+  case PAT_TYPE_OTHER:
+  default:
+    return true; /* Fallback: always run PCRE2 for unknown types */
+  }
 }
+
 
 static size_t append_no_literal_matches(Redactor *r, const char *line, size_t len,
                                         MatchLocation *verified, size_t num_verified,
@@ -264,7 +259,11 @@ static size_t append_no_literal_matches(Redactor *r, const char *line, size_t le
     pcre2_match_data *md = r->match_data[pat_id];
     size_t offset = 0;
     while (offset < len && num_verified < max_verified) {
-      int rc = pcre2_match(pat->regex, (PCRE2_SPTR)line, len, offset, 0, md, r->match_ctx);
+      /* Use JIT for no-literal patterns too (3-5x faster than interpreted) */
+      int rc = pcre2_jit_match(pat->regex, (PCRE2_SPTR)line, len, offset, 0, md, r->match_ctx);
+      if (rc == PCRE2_ERROR_JIT_BADOPTION) {
+        rc = pcre2_match(pat->regex, (PCRE2_SPTR)line, len, offset, 0, md, r->match_ctx);
+      }
       if (rc <= 0) {
         break;
       }
