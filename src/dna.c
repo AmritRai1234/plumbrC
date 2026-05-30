@@ -303,52 +303,110 @@ int dna_scan_fastq(dna_scanner_t *s, const char *fastq_path,
   struct timespec start, end;
   clock_gettime(CLOCK_MONOTONIC, &start);
 
-  char line[65536]; /* Max line length */
+  /* Sequence accumulation buffer for FASTA multi-line support */
+  size_t seq_cap = 1024 * 1024; /* 1MB initial — genomes can be large */
+  char *seq_buf = malloc(seq_cap);
+  if (!seq_buf) {
+    fclose(fp);
+    return -1;
+  }
+  size_t seq_len = 0;
+
+  char line[65536];
   size_t capacity = 0;
   uint32_t read_id = 0;
-  int line_in_read = 0; /* 0=header, 1=sequence, 2='+', 3=quality */
+  int is_fastq = -1; /* -1=unknown, 0=FASTA, 1=FASTQ */
+  int fastq_state = 0; /* 0=header, 1=seq, 2='+', 3=quality */
+
+  /* Helper: flush accumulated sequence */
+  #define FLUSH_SEQ() do { \
+    if (seq_len > 0) { \
+      scan_one_sequence(s, seq_buf, seq_len, read_id, matches, num_matches, &capacity); \
+      read_id++; \
+      seq_len = 0; \
+    } \
+  } while(0)
 
   while (fgets(line, sizeof(line), fp)) {
-    /* Remove trailing newline */
+    /* Remove trailing newline/CR */
     size_t len = strlen(line);
     while (len > 0 && (line[len - 1] == '\n' || line[len - 1] == '\r'))
       line[--len] = '\0';
+    if (len == 0)
+      continue;
 
-    switch (line_in_read) {
-    case 0: /* @header line — skip */
-      if (line[0] != '@' && line[0] != '>') {
-        /* Not a valid FASTQ/FASTA header, try to recover */
-        continue;
+    /* Detect format from first line */
+    if (is_fastq == -1) {
+      if (line[0] == '@')
+        is_fastq = 1;
+      else if (line[0] == '>')
+        is_fastq = 0;
+      else
+        continue; /* Skip unknown lines at start */
+    }
+
+    if (is_fastq == 0) {
+      /* ── FASTA format ── */
+      if (line[0] == '>') {
+        /* New header — flush previous sequence */
+        FLUSH_SEQ();
+      } else {
+        /* Sequence continuation line — append to buffer */
+        if (seq_len + len >= seq_cap) {
+          seq_cap = (seq_len + len) * 2;
+          char *tmp = realloc(seq_buf, seq_cap);
+          if (!tmp) {
+            free(seq_buf);
+            fclose(fp);
+            return -1;
+          }
+          seq_buf = tmp;
+        }
+        memcpy(seq_buf + seq_len, line, len);
+        seq_len += len;
       }
-      line_in_read = 1;
-      break;
-
-    case 1: /* Sequence line — SCAN THIS */
-      if (scan_one_sequence(s, line, len, read_id, matches, num_matches,
-                            &capacity) < 0) {
-        fclose(fp);
-        return -1;
+    } else {
+      /* ── FASTQ format ── */
+      switch (fastq_state) {
+      case 0: /* @header */
+        if (line[0] == '@') {
+          fastq_state = 1;
+          seq_len = 0;
+        }
+        break;
+      case 1: /* sequence */
+        if (seq_len + len >= seq_cap) {
+          seq_cap = (seq_len + len) * 2;
+          char *tmp = realloc(seq_buf, seq_cap);
+          if (!tmp) {
+            free(seq_buf);
+            fclose(fp);
+            return -1;
+          }
+          seq_buf = tmp;
+        }
+        memcpy(seq_buf + seq_len, line, len);
+        seq_len += len;
+        fastq_state = 2;
+        break;
+      case 2: /* '+' separator */
+        if (line[0] == '+') {
+          /* Scan the sequence now */
+          FLUSH_SEQ();
+          fastq_state = 3;
+        }
+        break;
+      case 3: /* quality — skip, reset */
+        fastq_state = 0;
+        break;
       }
-      read_id++;
-
-      /* Check if FASTA format (no quality lines) */
-      line_in_read = 2;
-      break;
-
-    case 2: /* '+' separator line — skip */
-      if (line[0] == '+') {
-        line_in_read = 3;
-      } else if (line[0] == '>' || line[0] == '@') {
-        /* FASTA format — this is the next header */
-        line_in_read = 1;
-      }
-      break;
-
-    case 3: /* Quality line — skip, reset for next read */
-      line_in_read = 0;
-      break;
     }
   }
+
+  /* Flush last FASTA sequence */
+  FLUSH_SEQ();
+
+  #undef FLUSH_SEQ
 
   clock_gettime(CLOCK_MONOTONIC, &end);
   s->stats.elapsed_seconds =
@@ -362,6 +420,7 @@ int dna_scan_fastq(dna_scanner_t *s, const char *fastq_path,
         (double)s->stats.bases_scanned / s->stats.elapsed_seconds;
   }
 
+  free(seq_buf);
   fclose(fp);
   return 0;
 }
