@@ -96,7 +96,7 @@ TEST(redact_inplace) {
   const char *input = "key=AKIAIOSFODNN7EXAMPLE";
   strcpy(buffer, input);
 
-  int result =
+  ssize_t result =
       libplumbr_redact_inplace(p, buffer, strlen(input), sizeof(buffer));
   ASSERT_TRUE(result >= 0);
   /* Should be redacted */
@@ -113,10 +113,37 @@ TEST(redact_inplace_no_match) {
   const char *input = "just a normal line";
   strcpy(buffer, input);
 
-  int result =
+  ssize_t result =
       libplumbr_redact_inplace(p, buffer, strlen(input), sizeof(buffer));
   ASSERT_TRUE(result >= 0);
   ASSERT_STR_EQ(input, buffer);
+
+  libplumbr_free(p);
+}
+
+TEST(redact_into) {
+  libplumbr_t *p = libplumbr_new(NULL);
+  ASSERT_TRUE(p != NULL);
+
+  const char *input = "key=AKIAIOSFODNN7EXAMPLE";
+  char output[256];
+
+  ssize_t result = libplumbr_redact_into(p, input, strlen(input),
+                                         output, sizeof(output));
+  ASSERT_TRUE(result >= 0);
+  ASSERT_TRUE(strstr(output, "AKIAIOSFODNN7EXAMPLE") == NULL);
+
+  /* Clean line — should pass through unchanged */
+  const char *clean = "normal log line";
+  result = libplumbr_redact_into(p, clean, strlen(clean),
+                                 output, sizeof(output));
+  ASSERT_TRUE(result >= 0);
+  ASSERT_STR_EQ(clean, output);
+
+  /* Buffer too small */
+  result = libplumbr_redact_into(p, clean, strlen(clean), output, 2);
+  ASSERT_TRUE(result < 0);
+  ASSERT_TRUE(libplumbr_last_error() == PLUMBR_ERR_BUFFER_TOO_SMALL);
 
   libplumbr_free(p);
 }
@@ -142,7 +169,7 @@ TEST(redact_batch) {
   ASSERT_TRUE(strstr(outputs[1], "AKIAIOSFODNN7EXAMPLE") == NULL);
 
   for (int i = 0; i < 3; i++) {
-    free(outputs[i]);
+    libplumbr_free_string(outputs[i]);
   }
   libplumbr_free(p);
 }
@@ -161,9 +188,9 @@ TEST(stats) {
   ASSERT_EQ(3, stats.lines_processed);
   ASSERT_TRUE(stats.lines_modified >= 1);
 
-  free(o1);
-  free(o2);
-  free(o3);
+  libplumbr_free_string(o1);
+  libplumbr_free_string(o2);
+  libplumbr_free_string(o3);
   libplumbr_free(p);
 }
 
@@ -171,14 +198,22 @@ TEST(null_safety) {
   /* NULL instance should not crash */
   char *result = libplumbr_redact(NULL, "test", 4, NULL);
   ASSERT_TRUE(result == NULL);
+  ASSERT_TRUE(libplumbr_last_error() == PLUMBR_ERR_NULL_INPUT);
 
-  int inplace = libplumbr_redact_inplace(NULL, NULL, 0, 0);
-  ASSERT_TRUE(inplace == -1);
+  ssize_t inplace = libplumbr_redact_inplace(NULL, NULL, 0, 0);
+  ASSERT_TRUE(inplace < 0);
 
   ASSERT_EQ(0, libplumbr_pattern_count(NULL));
 
   /* Free NULL should not crash */
   libplumbr_free(NULL);
+}
+
+TEST(error_codes) {
+  /* error_string should work for all codes */
+  ASSERT_TRUE(strlen(libplumbr_error_string(PLUMBR_OK)) > 0);
+  ASSERT_TRUE(strlen(libplumbr_error_string(PLUMBR_ERR_ALLOC)) > 0);
+  ASSERT_TRUE(strlen(libplumbr_error_string(PLUMBR_ERR_NULL_INPUT)) > 0);
 }
 
 TEST(version) {
@@ -198,7 +233,7 @@ TEST(empty_input) {
   ASSERT_TRUE(output != NULL);
   ASSERT_EQ(0, out_len);
 
-  free(output);
+  libplumbr_free_string(output);
   libplumbr_free(p);
 }
 
@@ -215,6 +250,7 @@ TEST(oversized_input) {
   size_t out_len;
   char *output = libplumbr_redact(p, big, huge, &out_len);
   ASSERT_TRUE(output == NULL); /* Should be rejected */
+  ASSERT_TRUE(libplumbr_last_error() == PLUMBR_ERR_INPUT_TOO_LARGE);
 
   free(big);
   libplumbr_free(p);
@@ -228,9 +264,11 @@ int main(void) {
   RUN_TEST(redact_no_match);
   RUN_TEST(redact_inplace);
   RUN_TEST(redact_inplace_no_match);
+  RUN_TEST(redact_into);
   RUN_TEST(redact_batch);
   RUN_TEST(stats);
   RUN_TEST(null_safety);
+  RUN_TEST(error_codes);
   RUN_TEST(version);
   RUN_TEST(empty_input);
   RUN_TEST(oversized_input);

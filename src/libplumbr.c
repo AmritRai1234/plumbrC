@@ -18,6 +18,25 @@
 #include <string.h>
 #include <unistd.h>
 
+/* ─── Thread-local error tracking ─── */
+static _Thread_local libplumbr_error_t tl_last_error = PLUMBR_OK;
+
+static inline void set_error(libplumbr_error_t err) { tl_last_error = err; }
+
+libplumbr_error_t libplumbr_last_error(void) { return tl_last_error; }
+
+const char *libplumbr_error_string(libplumbr_error_t err) {
+  switch (err) {
+  case PLUMBR_OK:                  return "success";
+  case PLUMBR_ERR_ALLOC:           return "memory allocation failed";
+  case PLUMBR_ERR_PATTERN:         return "invalid pattern or pattern file";
+  case PLUMBR_ERR_INPUT_TOO_LARGE: return "input exceeds max line size";
+  case PLUMBR_ERR_BUFFER_TOO_SMALL:return "output buffer too small";
+  case PLUMBR_ERR_NULL_INPUT:      return "NULL pointer argument";
+  default:                         return "unknown error";
+  }
+}
+
 /* Resolve a data file path relative to the binary location.
  * Tries: 1) PLUMBR_DATA_DIR env var  2) /proc/self/exe directory  3) relative path (fallback) */
 static bool resolve_data_path(const char *relative, char *out, size_t out_size) {
@@ -169,13 +188,18 @@ libplumbr_t *libplumbr_new(const libplumbr_config_t *config) {
 
 char *libplumbr_redact(libplumbr_t *p, const char *input, size_t input_len,
                        size_t *output_len) {
-  if (!p || !input)
+  if (!p || !input) {
+    set_error(PLUMBR_ERR_NULL_INPUT);
     return NULL;
+  }
 
   /* SECURITY: Validate input length */
   if (input_len > PLUMBR_MAX_LINE_SIZE) {
+    set_error(PLUMBR_ERR_INPUT_TOO_LARGE);
     return NULL; /* Input too large */
   }
+
+  set_error(PLUMBR_OK);
 
   size_t out_len;
   const char *result =
@@ -205,18 +229,63 @@ char *libplumbr_redact(libplumbr_t *p, const char *input, size_t input_len,
   return output;
 }
 
-int libplumbr_redact_inplace(libplumbr_t *p, char *buffer, size_t len,
-                             size_t capacity) {
-  if (!p || !buffer)
-    return -1;
+ssize_t libplumbr_redact_into(libplumbr_t *p, const char *input, size_t in_len,
+                              char *output, size_t out_cap) {
+  if (!p || !input || !output) {
+    set_error(PLUMBR_ERR_NULL_INPUT);
+    return PLUMBR_ERR_NULL_INPUT;
+  }
+  if (in_len > PLUMBR_MAX_LINE_SIZE) {
+    set_error(PLUMBR_ERR_INPUT_TOO_LARGE);
+    return PLUMBR_ERR_INPUT_TOO_LARGE;
+  }
+
+  size_t out_len;
+  const char *result = redactor_process(p->redactor, input, in_len, &out_len);
+
+  if (!result) {
+    set_error(PLUMBR_ERR_ALLOC);
+    return PLUMBR_ERR_ALLOC;
+  }
+  if (out_len >= out_cap) {
+    set_error(PLUMBR_ERR_BUFFER_TOO_SMALL);
+    return PLUMBR_ERR_BUFFER_TOO_SMALL;
+  }
+
+  memcpy(output, result, out_len);
+  output[out_len] = '\0';
+
+  /* Update stats */
+  p->stats.lines_processed++;
+  p->stats.bytes_processed += in_len;
+  if (out_len != in_len || memcmp(input, output, in_len) != 0) {
+    p->stats.lines_modified++;
+  }
+
+  set_error(PLUMBR_OK);
+  return (ssize_t)out_len;
+}
+
+ssize_t libplumbr_redact_inplace(libplumbr_t *p, char *buffer, size_t len,
+                                 size_t capacity) {
+  if (!p || !buffer) {
+    set_error(PLUMBR_ERR_NULL_INPUT);
+    return PLUMBR_ERR_NULL_INPUT;
+  }
 
   size_t out_len;
   const char *result = redactor_process(p->redactor, buffer, len, &out_len);
 
-  if (!result)
-    return -1;
-  if (out_len >= capacity)
-    return -1;
+  if (!result) {
+    set_error(PLUMBR_ERR_ALLOC);
+    return PLUMBR_ERR_ALLOC;
+  }
+  if (out_len >= capacity) {
+    set_error(PLUMBR_ERR_BUFFER_TOO_SMALL);
+    return PLUMBR_ERR_BUFFER_TOO_SMALL;
+  }
+
+  set_error(PLUMBR_OK);
 
   /* SECURITY: Use memmove — buffer may overlap with result */
   memmove(buffer, result, out_len);
@@ -229,7 +298,7 @@ int libplumbr_redact_inplace(libplumbr_t *p, char *buffer, size_t len,
     p->stats.lines_modified++;
   }
 
-  return (int)out_len;
+  return (ssize_t)out_len;
 }
 
 int libplumbr_redact_batch(libplumbr_t *p, const char **inputs,

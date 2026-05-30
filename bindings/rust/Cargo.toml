@@ -1,0 +1,10 @@
+[package]
+name = "plumbr"
+version = "1.0.0"
+edition = "2021"
+description = "Rust bindings for PlumbrC — high-performance log redaction"
+license = "MIT"
+links = "plumbr"
+
+[build-dependencies]
+cc = "1.0"
