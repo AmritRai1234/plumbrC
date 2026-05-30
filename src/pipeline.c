@@ -74,6 +74,14 @@ struct PlumbrContext {
 
 #ifdef PLUMBR_GPU
   GpuContext *gpu;   /* GPU accelerator (NULL if unavailable) */
+
+  /* Pre-allocated GPU batch buffers (avoids malloc on hot path) */
+  GpuLineResult *gpu_results;
+  size_t        *gpu_match_indices;
+  const char   **gpu_match_lines;
+  size_t        *gpu_match_lengths;
+  char         **gpu_match_outputs;
+  size_t        *gpu_match_out_lengths;
 #endif
 
   /* Timing */
@@ -225,6 +233,31 @@ PlumbrContext *plumbr_create(const PlumbrConfig *config) {
       ctx->gpu = NULL;
     }
   }
+
+  /* Pre-allocate GPU batch buffers (if GPU is active) */
+  if (ctx->gpu) {
+    size_t bs = PLUMBR_BATCH_SIZE;
+    ctx->gpu_results = malloc(bs * sizeof(GpuLineResult));
+    ctx->gpu_match_indices = malloc(bs * sizeof(size_t));
+    ctx->gpu_match_lines = malloc(bs * sizeof(const char *));
+    ctx->gpu_match_lengths = malloc(bs * sizeof(size_t));
+    ctx->gpu_match_outputs = malloc(bs * sizeof(char *));
+    ctx->gpu_match_out_lengths = malloc(bs * sizeof(size_t));
+
+    if (!ctx->gpu_results || !ctx->gpu_match_indices ||
+        !ctx->gpu_match_lines || !ctx->gpu_match_lengths ||
+        !ctx->gpu_match_outputs || !ctx->gpu_match_out_lengths) {
+      fprintf(stderr, "PlumbrC GPU: batch buffer alloc failed, using CPU\n");
+      free(ctx->gpu_results);
+      free(ctx->gpu_match_indices);
+      free(ctx->gpu_match_lines);
+      free(ctx->gpu_match_lengths);
+      free(ctx->gpu_match_outputs);
+      free(ctx->gpu_match_out_lengths);
+      gpu_destroy(ctx->gpu);
+      ctx->gpu = NULL;
+    }
+  }
 #endif
 
   return ctx;
@@ -264,80 +297,58 @@ static int process_batch(PlumbrContext *ctx, ParallelCtx *pctx,
    * GPU-accelerated path: use GPU AC DFA scan to pre-filter lines.
    * Lines with 0 matches skip redactor entirely (pass through unchanged).
    * Lines with matches go through CPU parallel_process for PCRE2 verification.
+   * All buffers are pre-allocated — zero malloc on hot path.
    */
   if (ctx->gpu) {
-    GpuLineResult *gpu_results = malloc(batch_count * sizeof(GpuLineResult));
-    if (gpu_results && gpu_scan_batch(ctx->gpu, lines, lengths,
-                                       batch_count, gpu_results)) {
-      /* Build list of lines that need CPU processing */
-      size_t *match_indices = malloc(batch_count * sizeof(size_t));
+    GpuLineResult *gpu_results = ctx->gpu_results;
+    if (gpu_scan_batch(ctx->gpu, lines, lengths, batch_count, gpu_results)) {
+      size_t *match_indices = ctx->gpu_match_indices;
       size_t num_matches = 0;
 
-      if (match_indices) {
-        for (size_t i = 0; i < batch_count; i++) {
-          if (gpu_results[i].num_matches > 0) {
-            match_indices[num_matches++] = i;
-          } else {
-            /* No matches — pass through unchanged */
-            memcpy(outputs[i], lines[i], lengths[i]);
-            outputs[i][lengths[i]] = '\0';
-            out_lengths[i] = lengths[i];
-          }
+      for (size_t i = 0; i < batch_count; i++) {
+        if (gpu_results[i].num_matches > 0) {
+          match_indices[num_matches++] = i;
+        } else {
+          /* No matches — pass through unchanged */
+          memcpy(outputs[i], lines[i], lengths[i]);
+          outputs[i][lengths[i]] = '\0';
+          out_lengths[i] = lengths[i];
         }
-
-        if (num_matches > 0) {
-          /* Build compact arrays for only the matching lines */
-          const char **match_lines = malloc(num_matches * sizeof(char *));
-          size_t *match_lengths = malloc(num_matches * sizeof(size_t));
-          char **match_outputs = malloc(num_matches * sizeof(char *));
-          size_t *match_out_lengths = malloc(num_matches * sizeof(size_t));
-
-          if (match_lines && match_lengths && match_outputs && match_out_lengths) {
-            for (size_t j = 0; j < num_matches; j++) {
-              size_t idx = match_indices[j];
-              match_lines[j] = lines[idx];
-              match_lengths[j] = lengths[idx];
-              match_outputs[j] = outputs[idx];
-              match_out_lengths[j] = out_lengths[idx];
-            }
-
-            /* Process only matched lines through CPU */
-            parallel_process(pctx, match_lines, match_lengths,
-                           match_outputs, match_out_lengths, num_matches);
-
-            /* Copy results back to original positions */
-            for (size_t j = 0; j < num_matches; j++) {
-              out_lengths[match_indices[j]] = match_out_lengths[j];
-            }
-          } else {
-            /* Malloc failed — fall through to full CPU processing */
-            parallel_process(pctx, lines, lengths, outputs, out_lengths,
-                           batch_count);
-          }
-
-          free(match_lines);
-          free(match_lengths);
-          free(match_outputs);
-          free(match_out_lengths);
-        }
-        /* else: num_matches == 0 means all lines are clean — all already
-         * copied to output, nothing to do */
-
-        free(match_indices);
-        free(gpu_results);
-
-        /* Write outputs */
-        for (size_t i = 0; i < batch_count; i++) {
-          if (!io_write_line(&ctx->io, outputs[i], out_lengths[i])) {
-            return 1;
-          }
-        }
-        return 0;
       }
 
-      free(gpu_results);
-    } else {
-      free(gpu_results);
+      if (num_matches > 0) {
+        /* Build compact arrays using pre-allocated buffers */
+        const char **match_lines = ctx->gpu_match_lines;
+        size_t *match_lengths = ctx->gpu_match_lengths;
+        char **match_outputs = ctx->gpu_match_outputs;
+        size_t *match_out_lengths = ctx->gpu_match_out_lengths;
+
+        for (size_t j = 0; j < num_matches; j++) {
+          size_t idx = match_indices[j];
+          match_lines[j] = lines[idx];
+          match_lengths[j] = lengths[idx];
+          match_outputs[j] = outputs[idx];
+          match_out_lengths[j] = out_lengths[idx];
+        }
+
+        /* Process only matched lines through CPU */
+        parallel_process(pctx, match_lines, match_lengths,
+                       match_outputs, match_out_lengths, num_matches);
+
+        /* Copy results back to original positions */
+        for (size_t j = 0; j < num_matches; j++) {
+          out_lengths[match_indices[j]] = match_out_lengths[j];
+        }
+      }
+      /* else: num_matches == 0 means all lines are clean */
+
+      /* Write outputs */
+      for (size_t i = 0; i < batch_count; i++) {
+        if (!io_write_line(&ctx->io, outputs[i], out_lengths[i])) {
+          return 1;
+        }
+      }
+      return 0;
     }
     /* GPU scan failed — fall through to CPU path */
   }
@@ -532,6 +543,12 @@ void plumbr_destroy(PlumbrContext *ctx) {
 
 #ifdef PLUMBR_GPU
   if (ctx->gpu) {
+    free(ctx->gpu_results);
+    free(ctx->gpu_match_indices);
+    free(ctx->gpu_match_lines);
+    free(ctx->gpu_match_lengths);
+    free(ctx->gpu_match_outputs);
+    free(ctx->gpu_match_out_lengths);
     gpu_destroy(ctx->gpu);
   }
 #endif

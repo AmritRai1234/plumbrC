@@ -101,6 +101,14 @@ typedef struct {
   long input_bytes;
 } BenchResult;
 
+#define WARMUP_RUNS 1
+#define MEASURED_RUNS 3
+
+static int cmp_double(const void *a, const void *b) {
+  double da = *(const double *)a, db = *(const double *)b;
+  return (da > db) - (da < db);
+}
+
 static int run_benchmark(BenchResult *br, int quiet) {
   if (!quiet) {
     fprintf(stderr, "  %-40s ", br->name);
@@ -129,46 +137,66 @@ static int run_benchmark(BenchResult *br, int quiet) {
   config.quiet = true;
   config.num_threads = br->threads;
 
-  PlumbrContext *ctx = plumbr_create(&config);
-  if (!ctx) {
-    fprintf(stderr, "plumbr_create failed\n");
-    fclose(input);
-    fclose(output);
-    return -1;
+  /* Warmup runs (discarded) */
+  for (int w = 0; w < WARMUP_RUNS; w++) {
+    rewind(input);
+    rewind(output);
+    PlumbrContext *ctx = plumbr_create(&config);
+    if (!ctx) {
+      fclose(input); fclose(output);
+      return -1;
+    }
+    plumbr_process(ctx, input, output);
+    plumbr_destroy(ctx);
   }
 
-  /* Warmup run */
-  rewind(input);
-  plumbr_process(ctx, input, output);
-  plumbr_destroy(ctx);
+  /* Measured runs — take median for stability */
+  double times[MEASURED_RUNS];
+  double lps_values[MEASURED_RUNS];
+  double mbps_values[MEASURED_RUNS];
+  size_t last_modified = 0, last_matched = 0, last_loaded = 0;
 
-  /* Timed run */
-  rewind(input);
-  rewind(output);
-  ctx = plumbr_create(&config);
-  if (!ctx) {
-    fclose(input);
-    fclose(output);
-    return -1;
+  for (int m = 0; m < MEASURED_RUNS; m++) {
+    rewind(input);
+    rewind(output);
+    PlumbrContext *ctx = plumbr_create(&config);
+    if (!ctx) {
+      fclose(input); fclose(output);
+      return -1;
+    }
+
+    double start = get_time();
+    plumbr_process(ctx, input, output);
+    times[m] = get_time() - start;
+
+    PlumbrStats stats = plumbr_get_stats(ctx);
+    lps_values[m] = stats.lines_per_second;
+    mbps_values[m] = stats.mb_per_second;
+    last_modified = stats.lines_modified;
+    last_matched = stats.patterns_matched;
+    last_loaded = stats.patterns_loaded;
+
+    plumbr_destroy(ctx);
   }
 
-  double start = get_time();
-  plumbr_process(ctx, input, output);
-  br->elapsed = get_time() - start;
+  /* Sort and take median */
+  qsort(times, MEASURED_RUNS, sizeof(double), cmp_double);
+  qsort(lps_values, MEASURED_RUNS, sizeof(double), cmp_double);
+  qsort(mbps_values, MEASURED_RUNS, sizeof(double), cmp_double);
 
-  PlumbrStats stats = plumbr_get_stats(ctx);
-  br->lines_per_sec = stats.lines_per_second;
-  br->mb_per_sec = stats.mb_per_second;
-  br->lines_modified = stats.lines_modified;
-  br->patterns_matched = stats.patterns_matched;
-  br->patterns_loaded = stats.patterns_loaded;
+  int mid = MEASURED_RUNS / 2;
+  br->elapsed = times[mid];
+  br->lines_per_sec = lps_values[mid];
+  br->mb_per_sec = mbps_values[mid];
+  br->lines_modified = last_modified;
+  br->patterns_matched = last_matched;
+  br->patterns_loaded = last_loaded;
 
   if (!quiet) {
     fprintf(stderr, "%8.0f lines/sec  %6.1f MB/s  (%.3fs)\n", br->lines_per_sec,
             br->mb_per_sec, br->elapsed);
   }
 
-  plumbr_destroy(ctx);
   fclose(input);
   fclose(output);
   return 0;

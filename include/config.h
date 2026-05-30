@@ -16,8 +16,8 @@
 #define PLUMBR_BATCH_SIZE 8192                /* Amortize barrier sync over more lines */
 
 /* Arena allocator */
-#define PLUMBR_ARENA_SIZE (128 * 1024 * 1024) /* 128MB main arena */
-#define PLUMBR_SCRATCH_SIZE (1 * 1024 * 1024) /* 1MB scratch */
+#define PLUMBR_ARENA_SIZE (16 * 1024 * 1024) /* 16MB main arena (max: ~14MB at 8K states) */
+#define PLUMBR_SCRATCH_SIZE (1 * 1024 * 1024) /* 1MB scratch per worker */
 
 /* Pattern matching */
 #define PLUMBR_MAX_PATTERNS 1024

@@ -61,12 +61,14 @@ struct ParallelCtx {
   size_t total_patterns_matched;
   size_t total_lines_modified;
 
-  /* Persistent Batch Storage to avoid heap allocation latency */
+  /* Persistent Batch Storage — contiguous pools instead of per-slot mallocs */
   const char **lines;
   size_t *lengths;
   char **outputs;
   size_t *out_lengths;
   char **line_copies;
+  char *output_pool;     /* Single contiguous block for all output slots */
+  char *line_copy_pool;  /* Single contiguous block for all line_copy slots */
 };
 
 /* Worker thread function */
@@ -165,26 +167,30 @@ ParallelCtx *parallel_create(int num_threads, PatternSet *patterns,
     return NULL;
   }
 
-  /* Initialize persistent batch buffers */
-  size_t k;
-  for (k = 0; k < PLUMBR_BATCH_SIZE; k++) {
-    ctx->outputs[k] = malloc(max_line_size);
-    ctx->line_copies[k] = malloc(max_line_size);
-    if (!ctx->outputs[k] || !ctx->line_copies[k]) {
-      for (size_t j = 0; j < k; j++) {
-        free(ctx->outputs[j]);
-        free(ctx->line_copies[j]);
-      }
-      free(ctx->outputs[k]);
-      free(ctx->line_copies[k]);
-      free((void *)ctx->lines);
-      free(ctx->lengths);
-      free(ctx->outputs);
-      free(ctx->out_lengths);
-      free(ctx->line_copies);
-      free(ctx);
-      return NULL;
-    }
+  /* Allocate two contiguous pools instead of 16K individual mallocs.
+   * Old approach: 8192 × 64KB × 2 = 1GB of scattered heap allocations.
+   * New approach: 2 contiguous blocks, sliced into per-line slots.
+   * Much better TLB behavior and 2 mmap calls vs 16K malloc calls. */
+  size_t pool_size = (size_t)PLUMBR_BATCH_SIZE * max_line_size;
+  ctx->output_pool = malloc(pool_size);
+  ctx->line_copy_pool = malloc(pool_size);
+
+  if (!ctx->output_pool || !ctx->line_copy_pool) {
+    free(ctx->output_pool);
+    free(ctx->line_copy_pool);
+    free((void *)ctx->lines);
+    free(ctx->lengths);
+    free(ctx->outputs);
+    free(ctx->out_lengths);
+    free(ctx->line_copies);
+    free(ctx);
+    return NULL;
+  }
+
+  /* Slice pools into per-line pointers */
+  for (size_t k = 0; k < PLUMBR_BATCH_SIZE; k++) {
+    ctx->outputs[k] = ctx->output_pool + k * max_line_size;
+    ctx->line_copies[k] = ctx->line_copy_pool + k * max_line_size;
   }
 
   /* Initialize barriers (+1 for main thread) */
@@ -194,10 +200,8 @@ ParallelCtx *parallel_create(int num_threads, PatternSet *patterns,
   /* Create workers */
   ctx->workers = calloc(num_threads, sizeof(Worker));
   if (!ctx->workers) {
-    for (size_t j = 0; j < PLUMBR_BATCH_SIZE; j++) {
-      free(ctx->outputs[j]);
-      free(ctx->line_copies[j]);
-    }
+    free(ctx->output_pool);
+    free(ctx->line_copy_pool);
     free((void *)ctx->lines);
     free(ctx->lengths);
     free(ctx->outputs);
@@ -256,11 +260,9 @@ cleanup:
     arena_destroy(&ctx->workers[i].arena);
   }
 
-  /* Free persistent batch storage */
-  for (size_t j = 0; j < PLUMBR_BATCH_SIZE; j++) {
-    free(ctx->outputs[j]);
-    free(ctx->line_copies[j]);
-  }
+  /* Free persistent batch storage (contiguous pools) */
+  free(ctx->output_pool);
+  free(ctx->line_copy_pool);
   free((void *)ctx->lines);
   free(ctx->lengths);
   free(ctx->outputs);
@@ -368,11 +370,9 @@ void parallel_destroy(ParallelCtx *ctx) {
   pthread_barrier_destroy(&ctx->start_barrier);
   pthread_barrier_destroy(&ctx->done_barrier);
 
-  /* Free persistent batch storage */
-  for (size_t k = 0; k < PLUMBR_BATCH_SIZE; k++) {
-    free(ctx->outputs[k]);
-    free(ctx->line_copies[k]);
-  }
+  /* Free persistent batch storage (contiguous pools) */
+  free(ctx->output_pool);
+  free(ctx->line_copy_pool);
   free((void *)ctx->lines);
   free(ctx->lengths);
   free(ctx->outputs);
